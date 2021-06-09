@@ -1,0 +1,5 @@
+sensor_msgs/PointCloud2 input
+
+---
+
+sensor_msgs/PointCloud2 cloud

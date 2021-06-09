@@ -1,0 +1,5 @@
+<launch>
+    <node pkg="image_view" type="video_record" name="video_record">
+        <param name="image" value="/camera/color/image_raw">
+    </node>
+</launch>
