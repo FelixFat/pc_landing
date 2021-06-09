@@ -1,5 +1,14 @@
 <launch>
-    <node pkg="image_view" type="video_record" name="video_record">
-        <param name="image" value="/camera/color/image_raw">
+    <node pkg="image_view" type="video_recorder" name="video_recorder" args="image:=/camera/color/image_raw" ns="color" output="screen">
+        <param name="filename" type="str" value="/home/flex/video/color.avi"/>
+        <param name="fps" type="int" value="30"/>
+        <param name="codec" type="str" value="MJPG"/>
+        <param name="encoding" type="str" value="bgr8"/>         
+    </node>
+    <node pkg="image_view" type="video_recorder" name="video_recorder" args="image:=/camera/depth/image_rect_raw" ns="depth">
+        <param name="filename" type="str" value="/home/flex/video/depth.avi"/>
+        <param name="fps" type="int" value="30"/>
+        <param name="codec" type="str" value="MJPG"/>
+        <param name="encoding" type="str" value="bgr8"/>         
     </node>
 </launch>
