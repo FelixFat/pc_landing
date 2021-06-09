@@ -1,14 +1,24 @@
 <launch>
     <node pkg="image_view" type="video_recorder" name="video_recorder" args="image:=/camera/color/image_raw" ns="color" output="screen">
-        <param name="filename" type="str" value="/home/flex/video/color.avi"/>
+        <param name="filename" type="str" value="/home/flex/color.avi"/>
         <param name="fps" type="int" value="30"/>
         <param name="codec" type="str" value="MJPG"/>
         <param name="encoding" type="str" value="bgr8"/>         
     </node>
     <node pkg="image_view" type="video_recorder" name="video_recorder" args="image:=/camera/depth/image_rect_raw" ns="depth">
-        <param name="filename" type="str" value="/home/flex/video/depth.avi"/>
+        <param name="filename" type="str" value="/home/flex/depth.avi"/>
         <param name="fps" type="int" value="30"/>
         <param name="codec" type="str" value="MJPG"/>
         <param name="encoding" type="str" value="bgr8"/>         
     </node>
+    
+    <include file="$(find rtabmap_ros)/launch/rtabmap.launch">
+        <arg name="rtabmapviz" value="false"/>
+        <arg name="database_path" value="/home/flex/SLAM_map.db"/>
+        <arg name="rtabmap_args" value="-delete_db_on_start"/>
+        <arg name="depth_topic" value="/camera/aligned_depth_to_color/image_raw"/>
+        <arg name="rgb_topic" value="/camera/color/image_raw"/>
+        <arg name="camera_info_topic" value="/camera/color/camera_info"/>
+        <arg name="approx_sync" value="false"/>
+    </include>
 </launch>
