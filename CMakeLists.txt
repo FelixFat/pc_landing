@@ -19,7 +19,6 @@ add_message_files(
 add_service_files(
     FILES
     LandingPoint.srv
-    OrganizePointCloud.srv
 )
 
 generate_messages(
