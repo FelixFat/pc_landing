@@ -1,8 +1,9 @@
 <launch>
     <!-- Start RealSense depth camera launch file -->
-    <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+    <include file="$(find realsense2_camera)/launch/rs_rgbd.launch">
         <arg name="enable_sync" value="true"/>
-        <arg name="enable_infra" value="true"/>
+        <arg name="enable_infra1" value="true"/>
+        <arg name="enable_infra2" value="true"/>
         <arg name="align_depth" value="true"/>
         <arg name="filters" value="pointcloud"/>
         <arg name="color_width" value="640"/>
@@ -16,6 +17,7 @@
     <!-- Start SLAM mapping -->
     <include file="$(find rtabmap_ros)/launch/rtabmap.launch">
         <arg name="rtabmapviz" value="false"/>
+        <arg name="output" value="log"/>
         <arg name="database_path" value="/home/flex/SLAM_map.db"/>
         <arg name="rtabmap_args" value="-delete_db_on_start"/>
         <arg name="depth_topic" value="/camera/aligned_depth_to_color/image_raw"/>
@@ -37,4 +39,7 @@
         <param name="codec" type="str" value="MJPG"/>
         <param name="encoding" type="str" value="bgr8"/>         
     </node>
+    
+    <!-- Start search -->
+    <node pkg="pc_landing" type="pc_searching_place" name="pc_searching_place"/>
 </launch>
