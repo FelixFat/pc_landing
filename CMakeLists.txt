@@ -53,8 +53,3 @@ target_link_libraries(pc_searching_place ${catkin_LIBRARIES})
 
 add_executable(landing_point scripts/landing_point.cpp)
 target_link_libraries(landing_point ${catkin_LIBRARIES})
-# add_dependencies(landing_point pc_landing)
-
-add_executable(organize scripts/organize.cpp)
-target_link_libraries(organize ${catkin_LIBRARIES})
-# add_dependencies(organize pc_landing)
