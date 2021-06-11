@@ -22,13 +22,21 @@ struct frame
     int h;
 };
 
-bool landing_point(pc_landing::LandingPoint::Request  &req, pc_landing::LandingPoint::Response &res)
+bool landing_point(pc_landing::LandingPoint::Request& req, pc_landing::LandingPoint::Response& res)
 {
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
     pcl::fromROSMsg(req.input, *cloud);
     
-    int gw = rand() % cloud->width;
-    int gh = rand() % cloud->height;
+    int gw, gh;
+    while (true)
+    {
+        gw = rand() % cloud->width;
+        gh = rand() % cloud->height;
+        if (cloud->at(gw, gh).x == 0 and cloud->at(gw, gh).y == 0 and cloud->at(gw, gh).z == 0)
+            continue;
+        else
+            break;
+    }
     
     bool state = true;
     bool flag = false;
@@ -67,9 +75,7 @@ bool landing_point(pc_landing::LandingPoint::Request  &req, pc_landing::LandingP
                 z = cloud->at(w, h).z;
                 if (x == 0 and y == 0 and z == 0)
                 {
-                    frame p;
-                    p.w = gw;
-                    p.h = gh;
+                    frame p = { gw, gh };
                     po.push_back(p);
                     
                     gw -= round((w - gw)/R);
@@ -90,7 +96,6 @@ bool landing_point(pc_landing::LandingPoint::Request  &req, pc_landing::LandingP
             goal_R = R;
             
             R += step;
-            po.clear();
         }
         else
         {
@@ -121,7 +126,7 @@ bool landing_point(pc_landing::LandingPoint::Request  &req, pc_landing::LandingP
     res.x = circle.x;
     res.y = circle.y;
     res.z = circle.z;
-    res.z = circle.R;
+    res.R = circle.R;
     
     return(true);
 }
@@ -133,7 +138,7 @@ int main(int argc, char **argv)
 
     ros::ServiceServer service = n.advertiseService("/copter/landing_point", landing_point);
     
-    ros::spinOnce();
+    ros::spin();
 
     return 0;
 }
