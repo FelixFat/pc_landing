@@ -46,14 +46,12 @@ private:
     ros::NodeHandle n_;
     ros::Publisher pub_;
     ros::Subscriber sub_;
-    ros::ServiceClient client_;
     
 public:
     PC_Search()
     {
         pub_ = n_.advertise<pc_landing::Landing>("/copter/point_landing", 1);
         sub_ = n_.subscribe("/camera/depth_registered/points", 10, &PC_Search::callback_lp, this);
-        client_ = n_.serviceClient<pc_landing::LandingPoint>("landing_point");
     }
     
     landing landing_point(pcl::PointCloud<pcl::PointXYZ> cloud)
@@ -226,7 +224,7 @@ public:
             plane.setInputCloud(msg);
             plane.segment(*inliers, *coefficients);
             
-    //////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////
             if (inliers->indices.size() < 0.3 * ptr_input->size())
                 break;
             
@@ -242,7 +240,7 @@ public:
             std::vector<pcl::PointIndices> cluster_indices;
             pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
             ec.setClusterTolerance(0.01);
-    ////////////////////////////////////////////////
+////////////////////////////////////////////////////
             ec.setMinClusterSize(0.3 * msg->size());
             ec.setSearchMethod(tree);
             ec.setInputCloud(msg);
@@ -257,33 +255,23 @@ public:
             
             if (angle <= 20.0)
             {
-                for (auto i: cluster_indices)
+                pcl::PointCloud<pcl::PointXYZ>::Ptr ptr_cloud (new pcl::PointCloud<pcl::PointXYZ> (cloud));
+
+                
+                for (std::vector<pcl::PointIndices>::const_iterator i = cluster_indices.begin(); i != cluster_indices.end(); ++i)
                 {
-                    pcl::PointIndices::Ptr ptr_i (new pcl::PointIndices (i));
-                    
-                    ind = indexes(ptr_i, ptr_input, msg);
-                    pcl::PointIndices::Ptr new_ind (new pcl::PointIndices(ind));
+                    pcl::PointIndices::Ptr ptr_i (new pcl::PointIndices);
+                    ptr_i->header = i->header;
+                    for (const auto& d: i->indices)
+                        ptr_i->indices.push_back(d);
                     
                     pcl::PointCloud<pcl::PointXYZ> cloud_cluster;
-                    cloud_cluster = inliers_points(new_ind, ptr_input, cloud_cluster);
-                    
-//                     pcl::PointCloud<pcl::PointXYZ>::Ptr ptr_cluster_cloud (new pcl::PointCloud<pcl::PointXYZ>(cloud_cluster));
-//                     sensor_msgs::PointCloud2::Ptr output (new sensor_msgs::PointCloud2);
-//                     pcl::toROSMsg(*ptr_cluster_cloud, *output);
-//                     pc_landing::LandingPoint srv;
-//                     srv.request.input = *output;
-//                     if (client_.call(srv))
-//                     {
-//                         land.x = srv.response.x;
-//                         land.y = srv.response.y;
-//                         land.z = srv.response.z;
-//                         land.R = srv.response.R;
-//                     }
+                    cloud_cluster = inliers_points(ptr_i, ptr_cloud, cloud_cluster);
                     
                     land = landing_point(cloud_cluster);
                     
                     //if (PI * pow(land.R, 2) >= PI * pow(0.2, 2))
-                        lp.push_back(land);
+                    lp.push_back(land);
                 }
             }
             
@@ -321,7 +309,16 @@ int main(int argc, char **argv)
     
     PC_Search space;
     
-    ros::spin();
+    ros::Rate loop_rate(0.1);
+
+    while (ros::ok())
+    {
+        PC_Search space;
+        
+        ros::spinOnce();
+
+        loop_rate.sleep();
+    }
     
     return 0;
 }
