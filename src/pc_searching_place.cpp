@@ -311,7 +311,7 @@ public:
     
     void callback_dist(const sensor_msgs::RangeConstPtr& input)
     {
-        dist_ = input->range;
+        dist_ = input->range + 0.025;
     }
 };
 
