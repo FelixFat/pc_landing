@@ -291,10 +291,10 @@ void callback(pcl::PointCloud<pcl::PointXYZ> input)
         pcl::PointCloud<pcl::PointXYZ> cloud;
         cloud = inliers_points(new_inliers, ptr_input, cloud);
         
+        std::cout << "\tKd-Tree..." << std::endl;
         pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
         tree->setInputCloud(msg);
         
-        std::cout << "here!" << std::endl;
         std::vector<pcl::PointIndices> cluster_indices;
         pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
         ec.setClusterTolerance(0.01);
@@ -315,22 +315,25 @@ void callback(pcl::PointCloud<pcl::PointXYZ> input)
         {
             pcl::PointCloud<pcl::PointXYZ>::Ptr ptr_cloud (new pcl::PointCloud<pcl::PointXYZ> (cloud));
             
-            std::cout << "clusterung..." << std::endl;
-            for (std::vector<pcl::PointIndices>::const_iterator i = cluster_indices.begin(); i != cluster_indices.end(); ++i)
+            std::cout << "\tclusterung..." << std::endl;
+            for (auto i = cluster_indices.begin(); i != cluster_indices.end(); i++)
             {
                 pcl::PointIndices::Ptr ptr_i (new pcl::PointIndices);
                 ptr_i->header = i->header;
-                for (const auto& d: i->indices)
+                for (auto d: i->indices)
                     ptr_i->indices.push_back(d);
                 
+                pcl::PointIndices new_i = indexes(ptr_i, ptr_input, msg);
+                pcl::PointIndices::Ptr ptr_new_i (new pcl::PointIndices(new_i));
+                
                 pcl::PointCloud<pcl::PointXYZ> cloud_cluster;
-                cloud_cluster = inliers_points(ptr_i, ptr_cloud, cloud_cluster);
+                cloud_cluster = inliers_points(ptr_new_i, ptr_input, cloud_cluster);
                 
                 viss(cloud_cluster);
                 
                 land = landing_point(cloud_cluster);
                 
-                if (PI * pow(land.R, 2) >= PI * pow(0.2, 2))
+                if (PI * pow(land.R, 2) >= PI * pow(0.002, 2))
                     lp.push_back(land);
             }
         }
@@ -367,16 +370,6 @@ int main(int argc, char** argv)
 //     cloud = organize(cloud);
     
     std::cout << "creating..." << std::endl;
-//     for (int i = 0; i < cloud.size(); i++)
-//     {
-//         cloud.points[i].x = float(i % cloud.width)/200;
-//         cloud.points[i].y = float(trunc(i / cloud.width))/200;
-//         if (false)
-//             cloud.points[i].z = -100 + (((float) rand()) / (float) RAND_MAX) * 200;
-//         else
-//             cloud.points[i].z = 0;
-//     }
-    
     for (int i = 0; i < 80; i++)
     {
         for (int j = 0; j < 400; j++)
@@ -407,13 +400,19 @@ int main(int argc, char** argv)
         }
     }
     
-    std::cout << "resolution: " << cloud.width << "x" << cloud.height << std::endl;
+    for (int i = 120; i < 360; i++)
+    {
+        for (int j = 0; j < 240; j++)
+        {
+            cloud.at(j, i).x = float(j)/1000;
+            cloud.at(j, i).y = float(i)/1000;
+            cloud.at(j, i).z = float(0.2);
+        }
+    }
 
     std::cout << "searching landing point..." << std::endl;
     callback(cloud);
-    std::cout << "x: " << land.x << ", y: " << land.y << ", z: " << land.z << ", R: " << land.R << std::endl;
-    
-    viss(cloud);
+    std::cout << "\tx: " << land.x << ", y: " << land.y << ", z: " << land.z << ", R: " << land.R << std::endl;
     
     std::cout << "end " << std::endl;
     return 0;
