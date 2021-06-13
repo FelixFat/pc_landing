@@ -56,5 +56,4 @@
         <param name="codec"     type="str"  value="MJPG"/>
         <param name="encoding"  type="str"  value="bgr8"/>         
     </node>
-
 </launch>
