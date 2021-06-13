@@ -2,7 +2,7 @@
     <arg name="path" default="/home/flex"/>
     
     <!-- Start RealSense depth camera launch file -->
-    <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+    <include file="$(find realsense2_camera)/launch/rs_rgbd.launch">
         <arg name="enable_sync"         value="true"/>
         <arg name="align_depth"         value="true"/>
         
