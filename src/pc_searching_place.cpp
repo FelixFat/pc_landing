@@ -3,6 +3,7 @@
 
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <sensor_msgs/Range.h>
 #include <pc_landing/Landing.h>
 #include <pc_landing/LandingPoint.h>
 
@@ -45,13 +46,17 @@ class PC_Search
 private:
     ros::NodeHandle n_;
     ros::Publisher pub_;
-    ros::Subscriber sub_;
+    ros::Subscriber sub_lp_;
+    ros::Subscriber sub_dist_;
+    
+    float dist_ = 1;
     
 public:
     PC_Search()
     {
         pub_ = n_.advertise<pc_landing::Landing>("/copter/point_landing", 1);
-        sub_ = n_.subscribe("/camera/depth_registered/points", 10, &PC_Search::callback_lp, this);
+        sub_lp_ = n_.subscribe("/camera/depth_registered/points", 10, &PC_Search::callback_lp, this);
+        sub_dist_ = n_.subscribe("/rangeginder/range", 10, &PC_Search::callback_dist, this);
     }
     
     landing landing_point(pcl::PointCloud<pcl::PointXYZ> cloud)
@@ -207,6 +212,8 @@ public:
                 msg->push_back(p);
         }
         
+        float k = dist_/(ptr_input->points[ptr_input->size()/2].z);
+        
         pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
         pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
 
@@ -224,8 +231,7 @@ public:
             plane.setInputCloud(msg);
             plane.segment(*inliers, *coefficients);
             
-//////////////////////////////////////////////////////////////////
-            if (inliers->indices.size() < 0.3 * ptr_input->size())
+            if (inliers->indices.size() < int(0.4/k))
                 break;
             
             pcl::PointIndices ind = indexes(inliers, ptr_input, msg);
@@ -240,8 +246,7 @@ public:
             std::vector<pcl::PointIndices> cluster_indices;
             pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
             ec.setClusterTolerance(0.01);
-////////////////////////////////////////////////////
-            ec.setMinClusterSize(0.3 * msg->size());
+            ec.setMinClusterSize(0.4/k);
             ec.setSearchMethod(tree);
             ec.setInputCloud(msg);
             ec.extract(cluster_indices);
@@ -272,7 +277,7 @@ public:
                     
                     land = landing_point(cloud_cluster);
                     
-                    if (PI * pow(land.R, 2) >= PI * pow(0.002, 2))
+                    if (PI * pow(land.R * k, 2) >= PI * pow(0.2, 2))
                         lp.push_back(land);
                 }
             }
@@ -297,11 +302,16 @@ public:
         }
         
         pc_landing::Landing fin_lp;
-        fin_lp.x = land.x;
-        fin_lp.y = land.y;
-        fin_lp.z = land.z;
-        fin_lp.R = land.R;
+        fin_lp.x = land.x * k;
+        fin_lp.y = land.y * k;
+        fin_lp.z = land.z * k;
+        fin_lp.R = land.R * k;
         pub_.publish(fin_lp);
+    }
+    
+    void callback_dist(const sensor_msgs::RangeConstPtr& input)
+    {
+        dist_ = input->range;
     }
 };
 
