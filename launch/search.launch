@@ -2,46 +2,59 @@
     <arg name="path" default="/home/flex"/>
     
     <!-- Start RealSense depth camera launch file -->
-    <include file="$(find realsense2_camera)/launch/rs_rgbd.launch">
-        <arg name="enable_sync" value="true"/>
-        <arg name="enable_infra1" value="true"/>
-        <arg name="enable_infra2" value="true"/>
-        <arg name="align_depth" value="true"/>
-        <arg name="filters" value="pointcloud"/>
-        <arg name="color_width" value="640"/>
-        <arg name="color_height" value="480"/>
-        <arg name="color_fps" value="30"/>
-        <arg name="depth_width" value="640"/>
-        <arg name="depth_height" value="480"/>
-        <arg name="depth_fps" value="30"/>
+    <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+        <arg name="enable_sync"         value="true"/>
+        <arg name="align_depth"         value="true"/>
+        
+        <arg name="enable_infra1"       value="true"/>
+        <arg name="enable_infra2"       value="true"/>
+        
+        <arg name="enable_pointcloud"   value="true"/>
+        <arg name="filters"             value="pointcloud"/>
+        
+        <arg name="color_width"         value="640"/>
+        <arg name="color_height"        value="480"/>
+        <arg name="color_fps"           value="30"/>
+        <arg name="depth_width"         value="640"/>
+        <arg name="depth_height"        value="480"/>
+        <arg name="depth_fps"           value="30"/>
+        <arg name="infra_width"         value="640"/>
+        <arg name="infra_height"        value="480"/>
+        <arg name="infra_fps"           value="30"/>
     </include>
     
     <!-- Start SLAM mapping -->
     <include file="$(find rtabmap_ros)/launch/rtabmap.launch">
-        <arg name="rtabmapviz" value="false"/>
-        <arg name="output" value="log"/>
-        <arg name="database_path" value="$(arg path)/SLAM_map.db"/>
-        <arg name="rtabmap_args" value="-delete_db_on_start"/>
-        <arg name="depth_topic" value="/camera/aligned_depth_to_color/image_raw"/>
-        <arg name="rgb_topic" value="/camera/color/image_raw"/>
-        <arg name="camera_info_topic" value="/camera/color/camera_info"/>
-        <arg name="approx_sync" value="false"/>
+        <arg name="rtabmapviz"              value="false"/>
+        <arg name="rviz"                    value="false"/>
+        <arg name="database_path"           value="$(arg path)/SLAM_map.db"/>
+        <arg name="rtabmap_args"            value="-delete_db_on_start"/>
+        
+        <arg name="stereo"                  value="true"/>
+        <arg name="approx_sync"             value="false"/>
+        
+        <arg name="left_image_topic"        value="/camera/infra1/image_rect_raw"/>
+        <arg name="right_image_topic"       value="/camera/infra2/image_rect_raw"/>
+        <arg name="left_camera_info_topic"  value="/camera/infra1/camera_info"/>
+        <arg name="right_camera_info_topic" value="/camera/infra2/camera_info"/>
+        
+        <arg name="depth_topic"             value="/camera/aligned_depth_to_color/image_raw"/>
+        <arg name="rgb_topic"               value="/camera/color/image_raw"/>
+        <arg name="camera_info_topic"       value="/camera/color/camera_info"/>
     </include>
     
     <!-- Start color and depth video recording -->
     <node pkg="image_view" type="video_recorder" name="video_recorder" args="image:=/camera/color/image_raw" ns="color">
-        <param name="filename" type="str" value="$(arg path)/color.avi"/>
-        <param name="fps" type="int" value="30"/>
-        <param name="codec" type="str" value="MJPG"/>
-        <param name="encoding" type="str" value="bgr8"/>         
+        <param name="filename"  type="str"  value="$(arg path)/color.avi"/>
+        <param name="fps"       type="int"  value="30"/>
+        <param name="codec"     type="str"  value="MJPG"/>
+        <param name="encoding"  type="str"  value="bgr8"/>         
     </node>
     <node pkg="image_view" type="video_recorder" name="video_recorder" args="image:=/camera/depth/image_rect_raw" ns="depth">
-        <param name="filename" type="str" value="$(arg path)/depth.avi"/>
-        <param name="fps" type="int" value="30"/>
-        <param name="codec" type="str" value="MJPG"/>
-        <param name="encoding" type="str" value="bgr8"/>         
+        <param name="filename"  type="str"  value="$(arg path)/depth.avi"/>
+        <param name="fps"       type="int"  value="30"/>
+        <param name="codec"     type="str"  value="MJPG"/>
+        <param name="encoding"  type="str"  value="bgr8"/>         
     </node>
-    
-    <!-- Start search -->
-    <node pkg="pc_landing" type="pc_searching_place" name="pc_searching_place"/>
+
 </launch>
