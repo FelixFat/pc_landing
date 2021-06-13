@@ -270,8 +270,6 @@ public:
                     pcl::PointCloud<pcl::PointXYZ> cloud_cluster;
                     cloud_cluster = inliers_points(ptr_new_i, ptr_input, cloud_cluster);
                     
-                    viss(cloud_cluster);
-                    
                     land = landing_point(cloud_cluster);
                     
                     if (PI * pow(land.R, 2) >= PI * pow(0.002, 2))
