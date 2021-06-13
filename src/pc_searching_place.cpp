@@ -256,22 +256,26 @@ public:
             if (angle <= 20.0)
             {
                 pcl::PointCloud<pcl::PointXYZ>::Ptr ptr_cloud (new pcl::PointCloud<pcl::PointXYZ> (cloud));
-
                 
-                for (std::vector<pcl::PointIndices>::const_iterator i = cluster_indices.begin(); i != cluster_indices.end(); ++i)
+                for (auto i = cluster_indices.begin(); i != cluster_indices.end(); i++)
                 {
                     pcl::PointIndices::Ptr ptr_i (new pcl::PointIndices);
                     ptr_i->header = i->header;
-                    for (const auto& d: i->indices)
+                    for (auto d: i->indices)
                         ptr_i->indices.push_back(d);
                     
+                    pcl::PointIndices new_i = indexes(ptr_i, ptr_input, msg);
+                    pcl::PointIndices::Ptr ptr_new_i (new pcl::PointIndices(new_i));
+                    
                     pcl::PointCloud<pcl::PointXYZ> cloud_cluster;
-                    cloud_cluster = inliers_points(ptr_i, ptr_cloud, cloud_cluster);
+                    cloud_cluster = inliers_points(ptr_new_i, ptr_input, cloud_cluster);
+                    
+                    viss(cloud_cluster);
                     
                     land = landing_point(cloud_cluster);
                     
-                    //if (PI * pow(land.R, 2) >= PI * pow(0.2, 2))
-                    lp.push_back(land);
+                    if (PI * pow(land.R, 2) >= PI * pow(0.002, 2))
+                        lp.push_back(land);
                 }
             }
             
