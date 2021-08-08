@@ -20,6 +20,7 @@
 
 #define PI 3.14159265
 
+
 struct frame
 {
     int w;
@@ -37,19 +38,22 @@ struct landing
 std::vector<landing> lp;
 landing land = {0.0, 0.0, 0.0, 0.0};
 
-landing landing_point(pcl::PointCloud<pcl::PointXYZ> cloud)
-{
-    int gw, gh;
-    while (true)
-    {
+// Функция поиска точки приземления
+landing landing_point(pcl::PointCloud<pcl::PointXYZ> cloud) {
+    // Случайный выбор точки для начала поиска точки посадки
+	int gw, gh;
+    while (true) {
         gw = rand() % cloud.width;
         gh = rand() % cloud.height;
-        if (cloud.at(gw, gh).x == 0 and cloud.at(gw, gh).y == 0 and cloud.at(gw, gh).z == 0)
+        if (cloud.at(gw, gh).x == 0 and cloud.at(gw, gh).y == 0 and cloud.at(gw, gh).z == 0) {
             continue;
-        else if ((gw == 0 and gh == 0) and (gw == cloud.width-1 and gh == 0) and (gw == 0 and gh == cloud.height-1) and (gw == cloud.width-1 and gh == cloud.height-1))
+		}
+        else if ((gw == 0 and gh == 0) and (gw == cloud.width-1 and gh == 0) and (gw == 0 and gh == cloud.height-1) and (gw == cloud.width-1 and gh == cloud.height-1)) {
             continue;
-        else
+		}
+        else {
             break;
+		}
     }
     
     bool state = true;
@@ -63,17 +67,15 @@ landing landing_point(pcl::PointCloud<pcl::PointXYZ> cloud)
     
     int goal_w, goal_h, goal_R = 0;
     
-    while (true)
-    {
-        for (int h = gh - R; h <= gh + R; h += step)
-        {
-            for (int w = gw - R; w <= gw + R; w += step)
-            {
-                if (pow(w - gw, 2) + pow(h - gh, 2) > pow(R, 2))
-                    continue;
+	// Поиск точки посадки
+    while (true) {
+        for (int h = gh - R; h <= gh + R; h += step) {
+            for (int w = gw - R; w <= gw + R; w += step) {
+                if (pow(w - gw, 2) + pow(h - gh, 2) > pow(R, 2)) {
+					continue;
+				}
                 
-                if (w < 0 or w > cloud.width-1 or h < 0 or h > cloud.height-1)
-                {
+                if (w < 0 or w > cloud.width-1 or h < 0 or h > cloud.height-1) {
                     frame p = { gw, gh };
                     po.push_back(p);
                     
@@ -87,8 +89,7 @@ landing landing_point(pcl::PointCloud<pcl::PointXYZ> cloud)
                 x = cloud.at(w, h).x;
                 y = cloud.at(w, h).y;
                 z = cloud.at(w, h).z;
-                if (x == 0 and y == 0 and z == 0)
-                {
+                if (x == 0 and y == 0 and z == 0) {
                     frame p = { gw, gh };
                     po.push_back(p);
                     
@@ -99,115 +100,52 @@ landing landing_point(pcl::PointCloud<pcl::PointXYZ> cloud)
                     break;
                 }
             }
-            if (!state)
-                break;
+            if (!state) {
+				break;
+			}
         }
         
-        if (state)
-        {
+        if (state) {
             goal_w = gw;
             goal_h = gh;
             goal_R = R;
             
             R += step;
         }
-        else
-        {
+        else {
             state = true;
-            for (auto p: po)
-            {
-                if (gw == p.w and gh == p.h)
-                {
+            for (auto p: po) {
+                if (gw == p.w and gh == p.h) {
                     flag = true;
                     break;
                 }
             }
         }
         
-        if (flag)
-            break;
+        if (flag) {
+			break;
+		}
     }
     
+	// Анализ результата и настройка вывода
     landing circle = { 0.0, 0.0, 0.0, 0.0 };
     
-    if (goal_R > 0)
-    {
-        float Radius = abs(cloud.at(goal_w, goal_h).x - cloud.at(goal_w - goal_R, goal_h).x);
-    
+    if (goal_R > 0) {
+        float Radius = fabs(cloud.at(goal_w, goal_h).x - cloud.at(goal_w - goal_R, goal_h).x);
         circle = { cloud.at(goal_w, goal_h).x, cloud.at(goal_w, goal_h).y, cloud.at(goal_w, goal_h).z, Radius };
     }
     
     return(circle);
 }
 
-pcl::PointCloud<pcl::PointXYZ> organize(pcl::PointCloud<pcl::PointXYZ> cloud)
-{
-    if (cloud.height != 1)
-    {
-        std::cout << "cloud is organized!" << std::endl;
-        return(cloud);
-    }
-    
-    int w, h;
-    if (cloud.size() == 424 * 240)
-    {
-        w = 424;
-        h = 240;
-    }
-    else if (cloud.size() == 480 * 270)
-    {
-        w = 480;
-        h = 270;
-    }
-    else if (cloud.size() == 640 * 360)
-    {
-        w = 640;
-        h = 360;
-    }
-    else if (cloud.size() == 640 * 480)
-    {
-        w = 640;
-        h = 480;
-    }
-    else if (cloud.size() == 848 * 480)
-    {
-        w = 848;
-        h = 480;
-    }
-    else if (cloud.size() == 1280 * 720)
-    {
-        w = 1280;
-        h = 720;
-    }
-    
-    pcl::PointCloud<pcl::PointXYZ> org;
-    org.width = w;
-    org.height = h;
-    org.is_dense = false;
-    org.points.resize(org.width * org.height);
-    
-    for (int j = 0; j < org.height; j++)
-    {
-        for (int i = 0; i < org.width; i++)
-        {
-            org.at(i, j).x = cloud.points[i + w*j].x;
-            org.at(i, j).y = cloud.points[i + w*j].y;
-            org.at(i, j).z = cloud.points[i + w*j].z;
-        }
-    }
-    
-    return (org);
-}
-
-pcl::PointCloud<pcl::PointXYZ> inliers_points(pcl::PointIndices::Ptr& inliers, pcl::PointCloud<pcl::PointXYZ>::Ptr& input, pcl::PointCloud<pcl::PointXYZ> cloud)
-{
+// Функция приведения входящих в область облака точек
+pcl::PointCloud<pcl::PointXYZ> inliers_points(pcl::PointIndices::Ptr& inliers, pcl::PointCloud<pcl::PointXYZ>::Ptr& input, pcl::PointCloud<pcl::PointXYZ> cloud) {
     cloud.width = input->width;
     cloud.height = input->height;
     cloud.is_dense = false;
     cloud.points.resize(cloud.width * cloud.height);
     
-    for (auto i: inliers->indices)
-    {
+    for (auto i: inliers->indices) {
         cloud.points[i].x = input->points[i].x;
         cloud.points[i].y = input->points[i].y;
         cloud.points[i].z = input->points[i].z;
@@ -216,14 +154,13 @@ pcl::PointCloud<pcl::PointXYZ> inliers_points(pcl::PointIndices::Ptr& inliers, p
     return(cloud);
 }
 
-pcl::PointIndices indexes(pcl::PointIndices::Ptr& inliers, pcl::PointCloud<pcl::PointXYZ>::Ptr& input, pcl::PointCloud<pcl::PointXYZ>::Ptr& msg)
-{
+// Функция приведения индексов облака точек
+pcl::PointIndices indexes(pcl::PointIndices::Ptr& inliers, pcl::PointCloud<pcl::PointXYZ>::Ptr& input, pcl::PointCloud<pcl::PointXYZ>::Ptr& msg) {
     pcl::PointIndices ind;
     ind.header = inliers->header;
     
     int count = 0;
-    for (int i = 0; i < input->size(); i++)
-    {
+    for (int i = 0; i < input->size(); i++) {
         if (input->points[i].x == msg->points[inliers->indices[count]].x and
             input->points[i].y == msg->points[inliers->indices[count]].y and
             input->points[i].z == msg->points[inliers->indices[count]].z
@@ -237,32 +174,35 @@ pcl::PointIndices indexes(pcl::PointIndices::Ptr& inliers, pcl::PointCloud<pcl::
     return(ind);
 }
 
-void viss(pcl::PointCloud<pcl::PointXYZ> cloud)
-{
-    // Вывод облака точек на экран
+// Функция вывода облака точек на экран
+void viss(pcl::PointCloud<pcl::PointXYZ> cloud) {
     pcl::PointCloud<pcl::PointXYZ>::Ptr ptr_cloud (new pcl::PointCloud<pcl::PointXYZ> (cloud));
 
     pcl::visualization::CloudViewer viewer("Cloud Viewer");
     viewer.showCloud(ptr_cloud);
     
     int user_data;
-    while (!viewer.wasStopped())
+    while (!viewer.wasStopped()) {
         user_data++;
+	}
 }
 
+// Основная функция
 void callback(pcl::PointCloud<pcl::PointXYZ> input)
 {
     pcl::PointCloud<pcl::PointXYZ>::Ptr ptr_input (new pcl::PointCloud<pcl::PointXYZ>(input));
     
     pcl::PointCloud<pcl::PointXYZ>::Ptr msg (new pcl::PointCloud<pcl::PointXYZ>);
-    for (auto p: ptr_input->points)
-    {
-        if (p.x == 0 or p.y == 0 or p.z == 0)
+    for (auto p: ptr_input->points) {
+        if (p.x == 0 or p.y == 0 or p.z == 0) {
             continue;
-        else
+		}
+        else {
             msg->push_back(p);
+		}
     }
     
+	// Настройка моделей детектирования
     pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
     pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
 
@@ -273,28 +213,30 @@ void callback(pcl::PointCloud<pcl::PointXYZ> input)
     plane.setMaxIterations(1000);
     plane.setDistanceThreshold(0.01);
     
-    while (true)
-    {
+    while (true) {
+		// Детектирование плоскости методом RANSAC
         std::cout << "RANSAC..." << std::endl;
         plane.setInputCloud(msg);
         plane.segment(*inliers, *coefficients);
         
-        if (inliers->indices.size() < 0.3 * ptr_input->size())
-        {
+        if (inliers->indices.size() < 0.3 * ptr_input->size()) {
             PCL_ERROR("Could not estimate a PLANAR model for the given dataset.\n");
             break;
         }
         
+		// Выделение детектированных областей в отдельное облако
         pcl::PointIndices ind = indexes(inliers, ptr_input, msg);
         pcl::PointIndices::Ptr new_inliers (new pcl::PointIndices(ind));
         
         pcl::PointCloud<pcl::PointXYZ> cloud;
         cloud = inliers_points(new_inliers, ptr_input, cloud);
         
+		// Использование метода Kd-деревьев для сегментации областей
         std::cout << "\tKd-Tree..." << std::endl;
         pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
         tree->setInputCloud(msg);
         
+		// Выделение областей пригодных для анализа
         std::vector<pcl::PointIndices> cluster_indices;
         pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
         ec.setClusterTolerance(0.01);
@@ -304,6 +246,7 @@ void callback(pcl::PointCloud<pcl::PointXYZ> input)
         ec.setInputCloud(msg);
         ec.extract(cluster_indices);
         
+		//  Определение угла наклоны найденной области
         float normal[3] = { 0, 0, 1 };
         float normal_place[3] = { coefficients->values[0], coefficients->values[1], coefficients->values[2] };
         float dot = normal[0]*normal_place[0] + normal[1]*normal_place[1] + normal[2]*normal_place[2];
@@ -311,33 +254,39 @@ void callback(pcl::PointCloud<pcl::PointXYZ> input)
         float len_normal_place = sqrt(pow(normal_place[0], 2) + pow(normal_place[1], 2) + pow(normal_place[2], 2));
         float angle = abs(acos(dot/(len_normal*len_normal_place)) * 180.0/PI);
         
-        if (angle <= 20.0)
-        {
+		
+        if (angle <= 20.0) {
             pcl::PointCloud<pcl::PointXYZ>::Ptr ptr_cloud (new pcl::PointCloud<pcl::PointXYZ> (cloud));
             
+			// Кластеризация
             std::cout << "\tclusterung..." << std::endl;
-            for (auto i = cluster_indices.begin(); i != cluster_indices.end(); i++)
-            {
+            for (auto i = cluster_indices.begin(); i != cluster_indices.end(); i++) {
                 pcl::PointIndices::Ptr ptr_i (new pcl::PointIndices);
                 ptr_i->header = i->header;
-                for (auto d: i->indices)
+                for (auto d: i->indices) {
                     ptr_i->indices.push_back(d);
+				}
                 
+				// Выделение кластеров в отдельные облака
                 pcl::PointIndices new_i = indexes(ptr_i, ptr_input, msg);
                 pcl::PointIndices::Ptr ptr_new_i (new pcl::PointIndices(new_i));
                 
                 pcl::PointCloud<pcl::PointXYZ> cloud_cluster;
                 cloud_cluster = inliers_points(ptr_new_i, ptr_input, cloud_cluster);
                 
+				// Визуализация
                 viss(cloud_cluster);
                 
+				// Поиск точки посадки
                 land = landing_point(cloud_cluster);
                 
-                if (PI * pow(land.R, 2) >= PI * pow(0.002, 2))
+                if (PI * pow(land.R, 2) >= PI * pow(0.002, 2)) {
                     lp.push_back(land);
+				}
             }
         }
         
+		// Извлечение ровной поверхности
         pcl::ExtractIndices<pcl::PointXYZ> extract;
         extract.setInputCloud(msg);
         extract.setIndices(inliers);
@@ -345,20 +294,22 @@ void callback(pcl::PointCloud<pcl::PointXYZ> input)
         extract.filter(*msg);
     }
     
-    if (!lp.empty())
-    {
+	// Проверка и сохранение наибольшей области посадки
+    if (!lp.empty()) {
         float temp = 0;
-        for (auto p: lp)
-            if (p.R > temp)
-            {
+        for (auto p: lp) {
+            if (p.R > temp) {
                 land = p;
                 temp = p.R;
             }
+		}
     }
 }
 
+// Главная функция
 int main(int argc, char** argv)
 {
+	// Инициализация облака точек
     pcl::PointCloud<pcl::PointXYZ> cloud;
     cloud.width = 640;
     cloud.height = 480;
@@ -366,50 +317,44 @@ int main(int argc, char** argv)
     cloud.points.resize(cloud.width * cloud.height);
     std::cout << "cloud size: " << cloud.size() << std::endl;
     
-//     std::cout << "organizing..." << std::endl;
-//     cloud = organize(cloud);
+	//std::cout << "organizing..." << std::endl;
+	//cloud = organize(cloud);
     
+	// Формирование облака точек тестового набора
     std::cout << "creating..." << std::endl;
-    for (int i = 0; i < 80; i++)
-    {
-        for (int j = 0; j < 400; j++)
-        {
+    for (int i = 0; i < 80; i++) {
+        for (int j = 0; j < 400; j++) {
             cloud.at(j, i).x = float(j)/1000;
             cloud.at(j, i).y = float(i)/1000;
             cloud.at(j, i).z = float(0.2);
         }
     }
     
-    for (int i = 400; i < 480; i++)
-    {
-        for (int j = 0; j < 400; j++)
-        {
+    for (int i = 400; i < 480; i++) {
+        for (int j = 0; j < 400; j++) {
             cloud.at(j, i).x = float(j)/1000;
             cloud.at(j, i).y = float(i)/1000;
             cloud.at(j, i).z = float(0.2);
         }
     }
     
-    for (int i = 0; i < 480; i++)
-    {
-        for (int j = 400; j < 640; j++)
-        {
+    for (int i = 0; i < 480; i++) {
+        for (int j = 400; j < 640; j++) {
             cloud.at(j, i).x = float(j)/1000;
             cloud.at(j, i).y = float(i)/1000;
             cloud.at(j, i).z = float(0.2);
         }
     }
     
-    for (int i = 120; i < 360; i++)
-    {
-        for (int j = 0; j < 240; j++)
-        {
+    for (int i = 120; i < 360; i++) {
+        for (int j = 0; j < 240; j++) {
             cloud.at(j, i).x = float(j)/1000;
             cloud.at(j, i).y = float(i)/1000;
             cloud.at(j, i).z = float(0.2);
         }
     }
 
+	//Вывод результата
     std::cout << "searching landing point..." << std::endl;
     callback(cloud);
     std::cout << "\tx: " << land.x << ", y: " << land.y << ", z: " << land.z << ", R: " << land.R << std::endl;
