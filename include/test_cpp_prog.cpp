@@ -42,11 +42,11 @@ landing land = {0.0, 0.0, 0.0, 0.0};
 landing landing_point(pcl::PointCloud<pcl::PointXYZ> cloud) {
     // Случайный выбор точки для начала поиска точки посадки
 	int gw, gh;
-    while (true) {
-        gw = rand() % cloud.width;
-        gh = rand() % cloud.height;
-        if (cloud.at(gw, gh).x == 0 and cloud.at(gw, gh).y == 0 and cloud.at(gw, gh).z == 0) {
-            continue;
+	while (true) {
+		gw = rand() % cloud.width;
+		gh = rand() % cloud.height;
+		if (cloud.at(gw, gh).x == 0 and cloud.at(gw, gh).y == 0 and cloud.at(gw, gh).z == 0) {
+			continue;
 		}
         else if ((gw == 0 and gh == 0) and (gw == cloud.width-1 and gh == 0) and (gw == 0 and gh == cloud.height-1) and (gw == cloud.width-1 and gh == cloud.height-1)) {
             continue;
