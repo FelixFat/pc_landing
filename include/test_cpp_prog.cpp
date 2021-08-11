@@ -21,14 +21,12 @@
 #define PI 3.14159265
 
 
-struct frame
-{
+struct frame {
     int w;
     int h;
 };
 
-struct landing
-{
+struct landing {
     float x;
     float y;
     float z;
@@ -36,7 +34,7 @@ struct landing
 };
 
 std::vector<landing> lp;
-landing land = {0.0, 0.0, 0.0, 0.0};
+landing land = { 0.0, 0.0, 0.0, 0.0 };
 
 // Функция поиска точки приземления
 landing landing_point(pcl::PointCloud<pcl::PointXYZ> cloud) {
@@ -188,8 +186,7 @@ void viss(pcl::PointCloud<pcl::PointXYZ> cloud) {
 }
 
 // Основная функция
-void callback(pcl::PointCloud<pcl::PointXYZ> input)
-{
+void callback(pcl::PointCloud<pcl::PointXYZ> input) {
     pcl::PointCloud<pcl::PointXYZ>::Ptr ptr_input (new pcl::PointCloud<pcl::PointXYZ>(input));
     
     pcl::PointCloud<pcl::PointXYZ>::Ptr msg (new pcl::PointCloud<pcl::PointXYZ>);
