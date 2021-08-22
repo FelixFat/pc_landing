@@ -26,7 +26,7 @@ struct t_landing_circle {
 };
 
 // Вектор, хранящий предыдущие окружности
-std::vector<landing> v_lp_mass;
+std::vector<v_lp_mass> v_lp_mass;
 
 // Найденая область посадки
 t_landing_circle pc_landing_area = { 0.0, 0.0, 0.0, 0.0 };
@@ -48,7 +48,7 @@ pcl::PointCloud<pcl::PointXYZ> PC_CONV_INLIERS(
 pcl::PointIndices PC_CONV_INDIXES(
     pcl::PointIndices::Ptr& inliers,
     pcl::PointCloud<pcl::PointXYZ>::Ptr& input,
-    pcl::PointCloud<pcl::PointXYZ>::Ptr& output);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr& msg);
 
 // callback
 void PC_FUNC_LANDING(
