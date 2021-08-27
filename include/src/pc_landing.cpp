@@ -168,8 +168,8 @@ pcl::PointIndices PC_CONV_INDIXES(
 void PC_FUNC_LANDING(
     pcl::PointCloud<pcl::PointXYZ> input_cloud)
 {
+    // Входное облако точек
     pcl::PointCloud<pcl::PointXYZ>::Ptr ptr_input (new pcl::PointCloud<pcl::PointXYZ>(input_cloud));
-    
     pcl::PointCloud<pcl::PointXYZ>::Ptr msg (new pcl::PointCloud<pcl::PointXYZ>);
     for (auto p: ptr_input->points) {
         if (p.x == 0 or p.y == 0 or p.z == 0) {
@@ -188,6 +188,7 @@ void PC_FUNC_LANDING(
     plane.setOptimizeCoefficients(true);
     plane.setModelType(pcl::SACMODEL_PLANE);
     plane.setMethodType(pcl::SAC_RANSAC);
+    plane.setEpsAngle(pc_model_angle);
     plane.setMaxIterations(1000);
     plane.setDistanceThreshold(0.01);
     
@@ -198,6 +199,7 @@ void PC_FUNC_LANDING(
     std::vector<pcl::PointIndices> cluster_indices;
     pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
     ec.setClusterTolerance(0.01);
+    
     //
     //  КОЭФФИЦИЕНТ
     //
@@ -206,19 +208,14 @@ void PC_FUNC_LANDING(
     ec.setSearchMethod(tree);
     ec.setInputCloud(msg);
     
-    while (true) {
+    //
+    //  КОЭФФИЦИЕНТ
+    //
+    while (inliers->indices.size() < 0.3 * ptr_input->size()) {
         // Детектирование плоскости методом RANSAC
-        std::cout << "RANSAC..." << std::endl;
+        std::cout << "\tRANSAC..." << std::endl;
         plane.setInputCloud(msg);
         plane.segment(*inliers, *coefficients);
-        
-        //
-        //  КОЭФФИЦИЕНТ
-        //
-        if (inliers->indices.size() < 0.3 * ptr_input->size()) {
-            PCL_ERROR("Could not estimate a PLANAR model for the given dataset.\n");
-            break;
-        }
         
         // Выделение детектированных областей в отдельное облако
         pcl::PointIndices ind = indexes(inliers, ptr_input, msg);
@@ -234,42 +231,26 @@ void PC_FUNC_LANDING(
         // Выделение пригодных областей
         ec.extract(cluster_indices);
         
-        //
-        //  УБРАТЬ РАСЧЕТ УГЛА И ВЫНЕСТИ В RANSAC
-        //
-        //  Определение угла наклоны найденной области
-        float normal[3] = { 0, 0, 1 };
-        float normal_place[3] = { coefficients->values[0], coefficients->values[1], coefficients->values[2] };
-        float dot = normal[0]*normal_place[0] + normal[1]*normal_place[1] + normal[2]*normal_place[2];
-        float len_normal = sqrt(pow(normal[0], 2) + pow(normal[1], 2) + pow(normal[2], 2));
-        float len_normal_place = sqrt(pow(normal_place[0], 2) + pow(normal_place[1], 2) + pow(normal_place[2], 2));
-        float angle = abs(acos(dot/(len_normal*len_normal_place)) * 180.0/PI);
-        
-        if (angle <= 20.0f) {
-            pcl::PointCloud<pcl::PointXYZ>::Ptr ptr_cloud (new pcl::PointCloud<pcl::PointXYZ> (cloud));
+        // Кластеризация
+        std::cout << "\tclusterung..." << std::endl;
+        for (auto i = cluster_indices.begin(); i != cluster_indices.end(); i++) {
+            pcl::PointIndices::Ptr ptr_i (new pcl::PointIndices);
+            ptr_i->header = i->header;
+            for (auto d: i->indices) {
+                ptr_i->indices.push_back(d);
+            }
             
-            // Кластеризация
-            std::cout << "\tclusterung..." << std::endl;
-            for (auto i = cluster_indices.begin(); i != cluster_indices.end(); i++) {
-                pcl::PointIndices::Ptr ptr_i (new pcl::PointIndices);
-                ptr_i->header = i->header;
-                for (auto d: i->indices) {
-                    ptr_i->indices.push_back(d);
-                }
-                
-                // Выделение кластеров в отдельные облака
-                pcl::PointIndices new_i = indexes(ptr_i, ptr_input, msg);
-                pcl::PointIndices::Ptr ptr_new_i (new pcl::PointIndices(new_i));
-                
-                pcl::PointCloud<pcl::PointXYZ> cloud_cluster;
-                cloud_cluster = inliers_points(ptr_new_i, ptr_input, cloud_cluster);
-                
-                // Поиск точки посадки
-                v_lp_mass = landing_point(cloud_cluster);
-                
-                if (PI * pow(v_lp_mass.R, 2) >= PI * pow(0.002f, 2)) {
-                    v_lp_mass.push_back(v_lp_mass);
-                }
+            // Выделение кластеров в отдельные облака
+            pcl::PointIndices new_i = indexes(ptr_i, ptr_input, msg);
+            pcl::PointIndices::Ptr ptr_new_i (new pcl::PointIndices(new_i));
+            
+            pcl::PointCloud<pcl::PointXYZ> cloud_cluster;
+            cloud_cluster = inliers_points(ptr_new_i, ptr_input, cloud_cluster);
+            
+            // Поиск точки посадки
+            v_lp_mass = landing_point(cloud_cluster);
+            if (PI * v_lp_mass.R * v_lp_mass.R >= pc_square_min) {
+                v_lp_mass.push_back(v_lp_mass);
             }
         }
         

@@ -25,8 +25,14 @@ struct t_landing_circle {
     float R;
 };
 
+// Максимально допустимый угол наклона плоскости
+double pc_model_angle = 20.0;
+
+// Минимально допустимая площадь области посадки в [м^2]
+float pc_square_min = 0.126;
+
 // Вектор, хранящий предыдущие окружности
-std::vector<v_lp_mass> v_lp_mass;
+std::vector<t_landing_circle> v_lp_mass;
 
 // Найденая область посадки
 t_landing_circle pc_landing_area = { 0.0, 0.0, 0.0, 0.0 };
