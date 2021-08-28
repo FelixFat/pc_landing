@@ -5,7 +5,7 @@
 #include <pcl/point_types.h>
 #include <pcl/visualization/cloud_viewer.h>
 
-#include "pc_landing.h"
+#include "pc_landing.cpp"
 
 void viss(pcl::PointCloud<pcl::PointXYZ> cloud);
 
