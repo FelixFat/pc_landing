@@ -9,3 +9,5 @@ Folders:
 - scripts - server service files
 - src - main files for package
 - srv - service type files for package
+
+![DLL](/include/point_cloud.png)
