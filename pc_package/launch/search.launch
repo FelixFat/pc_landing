@@ -1,0 +1,11 @@
+<launch>
+    <arg name="path"        default="/home/flex"/>
+    
+    <!-- Launch to mapping launch file video_map -->
+    <include file="$(find pc_landing)/launch/video_map.launch">
+        <arg name="path"    value="$(arg path)"/>
+    </include>
+    
+    <!-- Start search -->
+    <node pkg="pc_landing" type="pc_searching_place" name="pc_searching_place"/>
+</launch>
