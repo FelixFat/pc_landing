@@ -24,36 +24,38 @@ int main(int argc, char** argv)
     std::cout << "creating..." << std::endl;
     for (int i = 0; i < 80; i++) {
         for (int j = 0; j < 400; j++) {
-            cloud.at(j, i).x = float(j)/1000.0f;
-            cloud.at(j, i).y = float(i)/1000.0f;
+            cloud.at(j, i).x = float(j)/10000.0f;
+            cloud.at(j, i).y = float(i)/10000.0f;
             cloud.at(j, i).z = 0.2f;
         }
     }
     
     for (int i = 400; i < 480; i++) {
         for (int j = 0; j < 400; j++) {
-            cloud.at(j, i).x = float(j)/1000.0f;
-            cloud.at(j, i).y = float(i)/1000.0f;
+            cloud.at(j, i).x = float(j)/10000.0f;
+            cloud.at(j, i).y = float(i)/10000.0f;
             cloud.at(j, i).z = 0.2f;
         }
     }
     
     for (int i = 0; i < 480; i++) {
         for (int j = 400; j < 640; j++) {
-            cloud.at(j, i).x = float(j)/1000.0f;
-            cloud.at(j, i).y = float(i)/1000.0f;
+            cloud.at(j, i).x = float(j)/10000.0f;
+            cloud.at(j, i).y = float(i)/10000.0f;
             cloud.at(j, i).z = 0.2f;
         }
     }
     
     for (int i = 120; i < 360; i++) {
         for (int j = 0; j < 240; j++) {
-            cloud.at(j, i).x = float(j)/1000.0f;
-            cloud.at(j, i).y = float(i)/1000.0f;
+            cloud.at(j, i).x = float(j)/10000.0f;
+            cloud.at(j, i).y = float(i)/10000.0f;
             cloud.at(j, i).z = 0.2f;
         }
     }
 
+    viss(cloud);
+    
     //Вывод результата
     std::cout << "searching landing point..." << std::endl;
     PC_FUNC_LANDING(cloud);

@@ -164,11 +164,11 @@ pcl::PointIndices PC_CONV_INDIXES(
 void PC_FUNC_LANDING(
     pcl::PointCloud<pcl::PointXYZ> input_cloud)
 {
-    // Расчет расстояния [приведение коэффициентов облака точек в метры]
+    // Расчет расстояния (приведение коэффициентов облака точек в метры)
     float pc_range = pc_range_sensor / input_cloud.at(input_cloud.height/2, input_cloud.width/2).z;
     // Расчет среднего интервала между точками облака
     float pc_points_interval =
-        input_cloud.at(input_cloud.height/2 + 1, input_cloud.width/2 + 1).x - input_cloud.at(input_cloud.height/2, input_cloud.width/2).x;
+        input_cloud.at(input_cloud.height/2, input_cloud.width/2 + 1).x - input_cloud.at(input_cloud.height/2, input_cloud.width/2).x;
     // Расчет минимального числа точек для анализа облаков
     int pc_points_num_min = int(pc_square_min / pc_points_interval);
     
@@ -270,7 +270,7 @@ void PC_FUNC_LANDING(
     
     // Проверка и сохранение наибольшей области посадки
     if (!v_lp_mass.empty()) {
-        float temp = 0;
+        float temp = 0.0;
         for (auto p: v_lp_mass) {
             if (p.R > temp) {
                 pc_landing_area = p;
