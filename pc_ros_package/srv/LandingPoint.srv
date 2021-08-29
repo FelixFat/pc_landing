@@ -1,4 +1,4 @@
-sensor_msgs/PointCloud2 input
+sensor_msgs/PointCloud2 input_cloud
 ---
 float32 x
 float32 y
