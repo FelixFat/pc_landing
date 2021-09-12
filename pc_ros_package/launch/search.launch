@@ -1,9 +1,9 @@
 <launch>
-    <arg name="path" default="/home/flex"/>
+    <arg name="path"        default="/home/flex"/>
     
     <!-- Launch to mapping launch file video_map -->
     <include file="$(find pc_landing)/launch/video_map.launch">
-        <arg name="path" value="$(arg path)"/>
+        <arg name="path"    value="$(arg path)"/>
     </include>
     
     <!-- Start search -->
