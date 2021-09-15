@@ -16,6 +16,8 @@
 
 #include <pcl/kdtree/kdtree.h>
 
+#include <pcl/visualization/cloud_viewer.h>
+
 #include "pc_landing.h"
 
 // Функция поиска точки приземления

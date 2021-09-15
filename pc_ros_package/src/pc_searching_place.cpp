@@ -35,14 +35,12 @@ private:
     ros::Subscriber sub_dist_;
     ros::ServiceClient client_;
     
-    float pc_range_sensor = 1.0;
-    
 public:
     PC_Search()
     {
         pub_        = n_.advertise<pc_landing::Landing>("/copter/point_landing", 1);
-        sub_lp_     = n_.subscribe("/camera/depth_registered/points", 10, &PC_Search::PC_FUNC_LANDING, this);
         sub_dist_   = n_.subscribe("/rangeginder/range", 10, &PC_Search::callback_dist, this);
+        sub_lp_     = n_.subscribe("/camera/depth_registered/points", 10, &PC_Search::PC_FUNC_LANDING, this);
         client_     = n_.serviceClient<pc_landing::LandingPoint>("landing_point");
     }
     
@@ -197,7 +195,7 @@ public:
                 }
                 
                 pc_radius_m = pc_landing_area.R * pc_range;
-                if (PI * pow(pc_radius_m, 2) >= pc_square_min)
+                if (M_PI * pow(pc_radius_m, 2) >= pc_square_min)
                 {
                     v_lp_mass.push_back(pc_landing_area);
                 }
