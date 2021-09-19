@@ -29,8 +29,8 @@ generate_messages(
 
 catkin_package(
 #   INCLUDE_DIRS include
-#   LIBRARIES pc_landing
-#   CATKIN_DEPENDS roscpp rospy pcl_ros pcl_conversions std_msgs sensor_msgs message_runtime
+    LIBRARIES pc_landing
+    CATKIN_DEPENDS roscpp rospy pcl_ros pcl_conversions std_msgs sensor_msgs message_runtime
 #   DEPENDS system_lib
 )
 
@@ -45,6 +45,7 @@ include_directories(
 
 add_executable(pc_searching_place src/pc_searching_place.cpp)
 target_link_libraries(pc_searching_place ${catkin_LIBRARIES})
+add_dependencies(pc_searching_place pc_landing_gencpp)			#FOR MELODIC!!!
 
 ##############
 #  Services  #
@@ -52,3 +53,4 @@ target_link_libraries(pc_searching_place ${catkin_LIBRARIES})
 
 add_executable(landing_point scripts/landing_point.cpp)
 target_link_libraries(landing_point ${catkin_LIBRARIES})
+add_dependencies(landing_point pc_landing_gencpp)				#FOR MELODIC!!!
