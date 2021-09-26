@@ -28,12 +28,11 @@
 
 class PC_Search
 {
-private:
-    ros::NodeHandle n_;
-    ros::Publisher pub_;
-    ros::Subscriber sub_lp_;
-    ros::Subscriber sub_dist_;
-    ros::ServiceClient client_;
+private: ros::NodeHandle n_;
+private: ros::Publisher pub_;
+private: ros::Subscriber sub_lp_;
+private: ros::Subscriber sub_dist_;
+private: ros::ServiceClient client_;
     
 public:
     PC_Search()
@@ -241,7 +240,16 @@ public:
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "pc_searching_place");
+    
     PC_Search space;
+    
+    ros::Rate loop_rate(0.1);
+    while (ros::ok())
+    {
+        PC_Search space;
+        ros::spinOnce();
+        loop_rate.sleep();
+    }
     
     return 0;
 }

@@ -29,7 +29,7 @@ struct t_landing_circle {
 double pc_model_angle = 20.0;
 
 // Минимально допустимая площадь области посадки в [м^2]
-float pc_square_min = 0.126;
+float pc_square_min = 0.0; //0.126
 
 // Расстояние до земли с дальномера в [м]
 float pc_range_sensor = 1.0;
