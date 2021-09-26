@@ -1,5 +1,5 @@
 <launch>
-    <arg name="path"        default="/home/flex"/>
+    <arg name="path"        default="/home/pi"/>
     
     <!-- Launch to mapping launch file video_map -->
     <include file="$(find pc_landing)/launch/video_map.launch">
