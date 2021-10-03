@@ -56,16 +56,22 @@ public:
         {
             gw = rand() % cloud.width;
             gh = rand() % cloud.height;
-            if (cloud.at(gw, gh).x == 0 and cloud.at(gw, gh).y == 0 and cloud.at(gw, gh).z == 0)
+            
+            if (cloud.at(gw, gh).x == 0 and
+                cloud.at(gw, gh).y == 0 and
+                cloud.at(gw, gh).z == 0)
+            {
                 continue;
+            }
             else
+            {
                 break;
+            }
         }
         
         bool state = true;
         bool flag = false;
         int R = 1;
-        int step = 1;
         
         std::vector<t_frame> po;
         
@@ -75,17 +81,19 @@ public:
         
         while (true)
         {        
-            for (int h = gh - R; h <= gh + R; h += step)
+            for (int h = gh - R; h <= gh + R; h++)
             {
-                for (int w = gw - R; w <= gw + R; w += step)
+                for (int w = gw - R; w <= gw + R; w++)
                 {
                     if (pow(w - gw, 2) + pow(h - gh, 2) > pow(R, 2))
-                        continue;
-                    
-                    if (w < 0 or w > cloud.width-1 or h < 0 or h > cloud.height-1)
                     {
-                        t_frame p = { gw, gh };
-                        po.push_back(p);
+                        continue;
+                    }
+                    
+                    if (w < 0 or w > cloud.width-1 or
+                        h < 0 or h > cloud.height-1)
+                    {
+                        po.push_back({ gw, gh });
                         
                         gw -= round((w - gw)/R);
                         gh -= round((h - gh)/R);
@@ -99,8 +107,7 @@ public:
                     z = cloud.at(w, h).z;
                     if (x == 0 and y == 0 and z == 0)
                     {
-                        t_frame p = { gw, gh };
-                        po.push_back(p);
+                        po.push_back({ gw, gh });
                         
                         gw -= round((w - gw)/R);
                         gh -= round((h - gh)/R);
@@ -109,8 +116,11 @@ public:
                         break;
                     }
                 }
+                
                 if (!state)
+                {
                     break;
+                }
             }
             
             if (state)
@@ -119,7 +129,7 @@ public:
                 goal_h = gh;
                 goal_R = R;
                 
-                R += step;
+                R++;
             }
             else
             {
@@ -135,7 +145,9 @@ public:
             }
             
             if (flag)
+            {
                 break;
+            }
         }
         
         t_landing_circle circle = {0.0, 0.0, 0.0, 0.0};
@@ -143,7 +155,12 @@ public:
         if (goal_R > 0.0)
         {
             float Radius = abs(cloud.at(goal_w, goal_h).x - cloud.at(goal_w - goal_R, goal_h).x);
-            circle = { cloud.at(goal_w, goal_h).x, cloud.at(goal_w, goal_h).y, cloud.at(goal_w, goal_h).z, Radius };
+            circle = {
+                cloud.at(goal_w, goal_h).x,
+                cloud.at(goal_w, goal_h).y,
+                cloud.at(goal_w, goal_h).z,
+                Radius
+            };
         }
         
         return(circle);
