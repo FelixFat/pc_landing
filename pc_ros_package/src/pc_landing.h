@@ -1,6 +1,7 @@
 #ifndef __PC_LANDING_H__
 #define __PC_LANDING_H__
 
+#include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
 #define PI 3.14159265
@@ -8,8 +9,6 @@
 // t_###    - структура
 // pc_###   - переменная
 // v_###    - вектор
-// 
-// 
 
 // Структура кадра
 struct t_frame {

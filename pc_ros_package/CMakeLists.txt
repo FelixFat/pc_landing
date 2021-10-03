@@ -51,6 +51,6 @@ add_dependencies(pc_searching_place pc_landing_gencpp)			#FOR MELODIC!!!
 #  Services  #
 ##############
 
-add_executable(landing_point scripts/landing_point.cpp)
+add_executable(landing_point src/landing_point.cpp)
 target_link_libraries(landing_point ${catkin_LIBRARIES})
 add_dependencies(landing_point pc_landing_gencpp)				#FOR MELODIC!!!
