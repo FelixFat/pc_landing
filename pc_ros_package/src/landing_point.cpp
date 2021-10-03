@@ -1,4 +1,7 @@
+#include <iostream>
+
 #include <ros/ros.h>
+#include <sensor_msgs/PointCloud2.h>
 #include <pc_landing/LandingPoint.h>
 
 #include <pcl_ros/point_cloud.h>
@@ -24,27 +27,21 @@ struct t_landing_circle {
 
 bool landing_point(pc_landing::LandingPoint::Request  &req,
                    pc_landing::LandingPoint::Response &res)
-{
+{    
     // Инициализация входного облака точек в формат PCL
-    pcl::PointCloud<pcl::PointXYZ> cloud;
-    pcl::fromROSMsg(req.input, cloud);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
+    sensor_msgs::PointCloud2Ptr input_cloud (new sensor_msgs::PointCloud2(req.input));
+    pcl::fromROSMsg(*input_cloud, *cloud);
     
-    // Выбор случайной точки в облаке
     int gw, gh;
-    while (true) {
-        gw = rand() % cloud.width;
-        gh = rand() % cloud.height;
+    while (true)
+    {
+        gw = rand() % cloud->width;
+        gh = rand() % cloud->height;
         
-        if (cloud.at(gw, gh).x == 0 and
-            cloud.at(gw, gh).y == 0 and
-            cloud.at(gw, gh).z == 0)
-        {
-            continue;
-        }
-        else if ((gw == 0 and gh == 0) and
-                 (gw == cloud.width - 1 and gh == 0) and
-                 (gw == 0 and gh == cloud.height - 1) and
-                 (gw == cloud.width - 1 and gh == cloud.height - 1))
+        if (cloud->at(gw, gh).x == 0 and
+            cloud->at(gw, gh).y == 0 and
+            cloud->at(gw, gh).z == 0)
         {
             continue;
         }
@@ -57,37 +54,45 @@ bool landing_point(pc_landing::LandingPoint::Request  &req,
     bool state = true;
     bool flag = false;
     int R = 1;
-    int step = 1;
     
     std::vector<t_frame> po;
     
     float x, y, z;
+    
     int goal_w, goal_h, goal_R = 0;
     
-    // Поиск точки посадки
     while (true)
-    {
-        for (int h = gh - R; h <= gh + R; h += step)
+    {        
+        for (int h = gh - R; h <= gh + R; h++)
         {
-            for (int w = gw - R; w <= gw + R; w += step)
+            for (int w = gw - R; w <= gw + R; w++)
             {
                 if (pow(w - gw, 2) + pow(h - gh, 2) > pow(R, 2))
                 {
                     continue;
                 }
                 
-                x = cloud.at(w, h).x;
-                y = cloud.at(w, h).y;
-                z = cloud.at(w, h).z;
-                if (w < 0 or w > cloud.width - 1 or
-                    h < 0 or h > cloud.height - 1 or
-                   (x == 0 and y == 0 and z == 0))
+                if (w < 0 or w > cloud->width-1 or
+                    h < 0 or h > cloud->height-1)
                 {
-                    t_frame p = { gw, gh };
-                    po.push_back(p);
+                    po.push_back({ gw, gh });
                     
-                    gw -= round((w - gw) / R);
-                    gh -= round((h - gh) / R);
+                    gw -= round((w - gw)/R);
+                    gh -= round((h - gh)/R);
+                    
+                    state = false;
+                    break;
+                }
+                
+                x = cloud->at(w, h).x;
+                y = cloud->at(w, h).y;
+                z = cloud->at(w, h).z;
+                if (x == 0 and y == 0 and z == 0)
+                {
+                    po.push_back({ gw, gh });
+                    
+                    gw -= round((w - gw)/R);
+                    gh -= round((h - gh)/R);
                     
                     state = false;
                     break;
@@ -106,7 +111,7 @@ bool landing_point(pc_landing::LandingPoint::Request  &req,
             goal_h = gh;
             goal_R = R;
             
-            R += step;
+            R++;
         }
         else
         {
@@ -127,12 +132,17 @@ bool landing_point(pc_landing::LandingPoint::Request  &req,
         }
     }
     
-    // Анализ результата и настройка вывода
-    t_landing_circle circle = { 0.0, 0.0, 0.0, 0.0 };
+    t_landing_circle circle = {1.0, 2.0, 3.0, 4.0};
+    
     if (goal_R > 0.0)
     {
-        float Radius = fabs(cloud.at(goal_w, goal_h).x - cloud.at(goal_w - goal_R, goal_h).x);
-        circle = { cloud.at(goal_w, goal_h).x, cloud.at(goal_w, goal_h).y, cloud.at(goal_w, goal_h).z, Radius };
+        float Radius = abs(cloud->at(goal_w, goal_h).x - cloud->at(goal_w - goal_R, goal_h).x);
+        circle = {
+            cloud->at(goal_w, goal_h).x,
+            cloud->at(goal_w, goal_h).y,
+            cloud->at(goal_w, goal_h).z,
+            Radius
+        };
     }
     
     res.x = circle.x;

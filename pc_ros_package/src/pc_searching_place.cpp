@@ -301,6 +301,23 @@ public:
                 // Поиск точки посадки
                 pc_landing_area = landing_point(cloud_cluster);
                 
+//                 pc_landing::LandingPoint srv;
+//                 pcl::PointCloud<pcl::PointXYZ>::Ptr srv_cloud_cluster (new pcl::PointCloud<pcl::PointXYZ>(cloud_cluster));
+//                 sensor_msgs::PointCloud2Ptr cloud_msg (new sensor_msgs::PointCloud2);
+//                 
+//                 // Вызов сервиса для поиска точки посадки
+//                 pcl::toROSMsg(*srv_cloud_cluster, *cloud_msg);
+//                 
+//                 srv.request.input = *cloud_msg;
+//                 if (client_.call(srv))
+//                 {
+//                     pc_landing_area.x = srv.response.x;
+//                     pc_landing_area.y = srv.response.y;
+//                     pc_landing_area.z = srv.response.z;
+//                     pc_landing_area.R = srv.response.R;
+//                 }
+                
+                // Проверка точки на соответствие требованию площади
                 pc_radius_m = pc_landing_area.R * pc_range;
                 if (M_PI * pow(pc_radius_m, 2) >= pc_square_min)
                 {
