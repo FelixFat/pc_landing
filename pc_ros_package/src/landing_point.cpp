@@ -1,5 +1,3 @@
-#include <iostream>
-
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <pc_landing/LandingPoint.h>
