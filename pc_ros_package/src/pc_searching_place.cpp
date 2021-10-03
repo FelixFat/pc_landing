@@ -25,21 +25,9 @@
 
 #include <pcl/kdtree/kdtree.h>
 
+#include "pc_landing.h"
+
 #define PI 3.14159265
-
-struct landing
-{
-    float x;
-    float y;
-    float z;
-    float R;
-};
-
-struct frame
-{
-    int w;
-    int h;
-};
 
 class PC_Search
 {
@@ -61,7 +49,7 @@ public:
         client_     = n_.serviceClient<pc_landing::LandingPoint>("landing_point");
     }
 
-    landing landing_point(pcl::PointCloud<pcl::PointXYZ> cloud)
+    t_landing_circle landing_point(pcl::PointCloud<pcl::PointXYZ> cloud)
     {
         int gw, gh;
         while (true)
@@ -79,7 +67,7 @@ public:
         int R = 1;
         int step = 1;
         
-        std::vector<frame> po;
+        std::vector<t_frame> po;
         
         float x, y, z;
         
@@ -96,7 +84,7 @@ public:
                     
                     if (w < 0 or w > cloud.width-1 or h < 0 or h > cloud.height-1)
                     {
-                        frame p = { gw, gh };
+                        t_frame p = { gw, gh };
                         po.push_back(p);
                         
                         gw -= round((w - gw)/R);
@@ -111,7 +99,7 @@ public:
                     z = cloud.at(w, h).z;
                     if (x == 0 and y == 0 and z == 0)
                     {
-                        frame p = { gw, gh };
+                        t_frame p = { gw, gh };
                         po.push_back(p);
                         
                         gw -= round((w - gw)/R);
@@ -138,7 +126,7 @@ public:
                 state = true;
                 for (auto p: po)
                 {
-                    if (gw == p.w and gh == p.h)
+                    if (gw == p.width and gh == p.height)
                     {
                         flag = true;
                         break;
@@ -150,12 +138,11 @@ public:
                 break;
         }
         
-        landing circle = {0.0, 0.0, 0.0, 0.0};
+        t_landing_circle circle = {0.0, 0.0, 0.0, 0.0};
         
-        if (goal_R > 0)
+        if (goal_R > 0.0)
         {
             float Radius = abs(cloud.at(goal_w, goal_h).x - cloud.at(goal_w - goal_R, goal_h).x);
-        
             circle = { cloud.at(goal_w, goal_h).x, cloud.at(goal_w, goal_h).y, cloud.at(goal_w, goal_h).z, Radius };
         }
         
@@ -205,13 +192,25 @@ public:
         pcl::PointCloud<pcl::PointXYZ>::Ptr ptr_input (new pcl::PointCloud<pcl::PointXYZ>);
         pcl::fromROSMsg(*input, *ptr_input);
         
+        float pc_range = pc_range_sensor / ptr_input->at(ptr_input->height/2, ptr_input->width/2).z;
+        
+        float pc_points_interval =
+            ptr_input->at(ptr_input->height/2, ptr_input->width/2 + 1).x -
+            ptr_input->at(ptr_input->height/2, ptr_input->width/2).x;
+        
+        int pc_points_num_min = int(pc_square_min / pc_points_interval);
+        
         pcl::PointCloud<pcl::PointXYZ>::Ptr msg (new pcl::PointCloud<pcl::PointXYZ>);
         for (auto p: ptr_input->points)
         {
             if (isnan(p.x) or isnan(p.y) or isnan(p.z))
+            {
                 continue;
+            }
             else
+            {
                 msg->push_back(p);
+            }
         }
         
         pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
@@ -221,11 +220,17 @@ public:
         plane.setOptimizeCoefficients(true);
         plane.setModelType(pcl::SACMODEL_PLANE);
         plane.setMethodType(pcl::SAC_RANSAC);
+        plane.setEpsAngle(pc_model_angle);
         plane.setMaxIterations(1000);
         plane.setDistanceThreshold(0.01);
         
-        std::vector<landing> lp;
-        landing land = { 0.0, 0.0, 0.0, 0.0 };
+        pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
+        
+        pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
+        ec.setClusterTolerance(0.01);
+////////////////////////////////////////////////////
+        ec.setMinClusterSize(0.3 * msg->size());
+        
         while (true)
         {
             plane.setInputCloud(msg);
@@ -233,7 +238,9 @@ public:
             
 //////////////////////////////////////////////////////////////////
             if (inliers->indices.size() < 0.3 * ptr_input->size())
+            {
                 break;
+            }
             
             pcl::PointIndices ind = indexes(inliers, ptr_input, msg);
             pcl::PointIndices::Ptr new_inliers (new pcl::PointIndices(ind));
@@ -241,46 +248,35 @@ public:
             pcl::PointCloud<pcl::PointXYZ> cloud;
             cloud = inliers_points(new_inliers, ptr_input, cloud);
             
-            pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
             tree->setInputCloud(msg);
             
             std::vector<pcl::PointIndices> cluster_indices;
-            pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
-            ec.setClusterTolerance(0.01);
-////////////////////////////////////////////////////
-            ec.setMinClusterSize(0.3 * msg->size());
             ec.setSearchMethod(tree);
             ec.setInputCloud(msg);
             ec.extract(cluster_indices);
             
-            float normal[3] = { 0, 0, 1 };
-            float normal_place[3] = { coefficients->values[0], coefficients->values[1], coefficients->values[2] };
-            float dot = normal[0]*normal_place[0] + normal[1]*normal_place[1] + normal[2]*normal_place[2];
-            float len_normal = sqrt(pow(normal[0], 2) + pow(normal[1], 2) + pow(normal[2], 2));
-            float len_normal_place = sqrt(pow(normal_place[0], 2) + pow(normal_place[1], 2) + pow(normal_place[2], 2));
-            float angle = abs(acos(dot/(len_normal*len_normal_place)) * 180.0/PI);
             
-            if (angle <= 20.0)
+            pcl::PointCloud<pcl::PointXYZ>::Ptr ptr_cloud (new pcl::PointCloud<pcl::PointXYZ> (cloud));
+            for (auto i = cluster_indices.begin(); i != cluster_indices.end(); i++)
             {
-                pcl::PointCloud<pcl::PointXYZ>::Ptr ptr_cloud (new pcl::PointCloud<pcl::PointXYZ> (cloud));
-                
-                for (auto i = cluster_indices.begin(); i != cluster_indices.end(); i++)
+                pcl::PointIndices::Ptr ptr_i (new pcl::PointIndices);
+                ptr_i->header = i->header;
+                for (auto d: i->indices)
                 {
-                    pcl::PointIndices::Ptr ptr_i (new pcl::PointIndices);
-                    ptr_i->header = i->header;
-                    for (auto d: i->indices)
-                        ptr_i->indices.push_back(d);
-                    
-                    pcl::PointIndices new_i = indexes(ptr_i, ptr_input, msg);
-                    pcl::PointIndices::Ptr ptr_new_i (new pcl::PointIndices(new_i));
-                    
-                    pcl::PointCloud<pcl::PointXYZ> cloud_cluster;
-                    cloud_cluster = inliers_points(ptr_new_i, ptr_input, cloud_cluster);
-                    
-                    land = landing_point(cloud_cluster);
-                    
-                    if (land.R * land.R >= 0.002 * 0.002)
-                        lp.push_back(land);
+                    ptr_i->indices.push_back(d);
+                }
+                
+                pcl::PointIndices new_i = indexes(ptr_i, ptr_input, msg);
+                pcl::PointIndices::Ptr ptr_new_i (new pcl::PointIndices(new_i));
+                
+                pcl::PointCloud<pcl::PointXYZ> cloud_cluster;
+                cloud_cluster = inliers_points(ptr_new_i, ptr_input, cloud_cluster);
+                
+                pc_landing_area = landing_point(cloud_cluster);
+                
+                if (pc_landing_area.R * pc_landing_area.R >= 0.002 * 0.002)
+                {
+                    v_lp_mass.push_back(pc_landing_area);
                 }
             }
             
@@ -291,23 +287,25 @@ public:
             extract.filter(*msg);
         }
         
-        if (!lp.empty())
+        if (!v_lp_mass.empty())
         {
             float temp = 0;
-            for (auto p: lp)
+            for (auto p: v_lp_mass)
+            {
                 if (p.R > temp)
                 {
-                    land = p;
+                    pc_landing_area = p;
                     temp = p.R;
                 }
-            lp.clear();
+            }
+            v_lp_mass.clear();
         }
         
         pc_landing::Landing fin_lp;
-        fin_lp.x = land.x;
-        fin_lp.y = land.y;
-        fin_lp.z = land.z;
-        fin_lp.R = land.R;
+        fin_lp.x = pc_landing_area.x;
+        fin_lp.y = pc_landing_area.y;
+        fin_lp.z = pc_landing_area.z;
+        fin_lp.R = pc_landing_area.R;
         pub_.publish(fin_lp);
     }
     
