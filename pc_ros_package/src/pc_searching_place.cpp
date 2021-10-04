@@ -350,10 +350,10 @@ public:
         
         // Вывод
         pc_landing::Landing fin_lp;
-        fin_lp.x = pc_landing_area.x;
-        fin_lp.y = pc_landing_area.y;
-        fin_lp.z = pc_landing_area.z;
-        fin_lp.R = pc_landing_area.R;
+        fin_lp.x = pc_landing_area.x * pc_range;
+        fin_lp.y = pc_landing_area.y * pc_range;
+        fin_lp.z = pc_landing_area.z * pc_range;
+        fin_lp.R = pc_landing_area.R * pc_range;
         pub_.publish(fin_lp);
     }
     
