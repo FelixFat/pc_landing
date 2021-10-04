@@ -41,6 +41,13 @@ private:
 public:
     PC_Search()
     {
+        pc_model_angle = 20.0;
+        pc_square_min = 0.0;    //0.126
+        pc_range_sensor = 1.0;
+        pc_radius_m = 0.0;
+        v_lp_mass.clear();
+        pc_landing_area = { 0.0, 0.0, 0.0, 0.0 };
+        
         pub_        = n_.advertise<pc_landing::Landing>("/copter/point_landing", 1);
         sub_dist_   = n_.subscribe("/rangeginder/range", 10, &PC_Search::callback_dist, this);
         sub_lp_     = n_.subscribe("/camera/depth_registered/points", 10, &PC_Search::callback_lp, this);
@@ -252,7 +259,6 @@ public:
         ec.setClusterTolerance(0.01);
         ec.setMinClusterSize(pc_points_num_min);
         
-        pc_landing_area = { 0.0, 0.0, 0.0, 0.0 };
         while (true)
         {
             // Детектирование плоскости методом RANSAC
@@ -345,15 +351,12 @@ public:
                     temp = p.R;
                 }
             }
-            v_lp_mass.clear();
         }
         
         // Вывод
         pc_landing::Landing fin_lp;
         fin_lp.x = pc_landing_area.x * pc_range;
         fin_lp.y = pc_landing_area.y * pc_range;
-        fin_lp.z = pc_landing_area.z * pc_range;
-        fin_lp.R = pc_landing_area.R * pc_range;
         pub_.publish(fin_lp);
     }
     
