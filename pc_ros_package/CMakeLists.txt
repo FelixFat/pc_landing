@@ -13,7 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 add_message_files(
     FILES
-    Landing.msg
+    LandingCoordinates.msg
 )
 
 add_service_files(
@@ -43,14 +43,14 @@ include_directories(
 #  Nodes  #
 ###########
 
-add_executable(pc_searching_place src/pc_searching_place.cpp)
-target_link_libraries(pc_searching_place ${catkin_LIBRARIES})
-add_dependencies(pc_searching_place pc_landing_gencpp)			#FOR MELODIC!!!
+add_executable(pc_detection_SLZ src/pc_detection_SLZ.cpp)
+target_link_libraries(pc_detection_SLZ ${catkin_LIBRARIES})
+add_dependencies(pc_detection_SLZ pc_landing_gencpp)			#FOR MELODIC!!!
 
 ##############
 #  Services  #
 ##############
 
-add_executable(landing_point src/landing_point.cpp)
-target_link_libraries(landing_point ${catkin_LIBRARIES})
-add_dependencies(landing_point pc_landing_gencpp)				#FOR MELODIC!!!
+add_executable(pc_search_point src/pc_search_point.cpp)
+target_link_libraries(pc_search_point ${catkin_LIBRARIES})
+add_dependencies(pc_search_point pc_landing_gencpp)				#FOR MELODIC!!!

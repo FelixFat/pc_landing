@@ -10,6 +10,6 @@
     </include>
     
     <!-- Start search -->
-    <node pkg="pc_landing" type="pc_searching_place" name="pc_searching_place"/>
-    <node pkg="pc_landing" type="landing_point" name="landing_point"/>
+    <node pkg="pc_landing" type="pc_detection_SLZ" name="detection_slz"/>
+    <node pkg="pc_landing" type="pc_search_point" name="search_point"/>
 </launch>

@@ -4,7 +4,7 @@
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/Range.h>
-#include <pc_landing/Landing.h>
+#include <pc_landing/LandingCoordinates.h>
 #include <pc_landing/LandingPoint.h>
 
 #include <pcl_ros/point_cloud.h>
@@ -48,10 +48,10 @@ public:
         v_lp_mass.clear();
         pc_landing_area = { 0.0, 0.0, 0.0, 0.0 };
         
-        pub_        = n_.advertise<pc_landing::Landing>("/copter/point_landing", 1);
+        pub_        = n_.advertise<pc_landing::LandingCoordinates>("/copter/slz_coordinates", 1);
         sub_dist_   = n_.subscribe("/rangeginder/range", 10, &PC_Search::callback_dist, this);
         sub_lp_     = n_.subscribe("/camera/depth_registered/points", 10, &PC_Search::callback_lp, this);
-        client_     = n_.serviceClient<pc_landing::LandingPoint>("landing_point");
+        client_     = n_.serviceClient<pc_landing::LandingPoint>("search_point");
     }
 
     // Функция приведения входящих в область облака точек
@@ -237,7 +237,7 @@ public:
         }
         
         // Вывод
-        pc_landing::Landing fin_lp;
+        pc_landing::LandingCoordinates fin_lp;
         fin_lp.x = pc_landing_area.x * pc_range;
         fin_lp.y = pc_landing_area.y * pc_range;
         pub_.publish(fin_lp);
@@ -251,7 +251,7 @@ public:
 
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "pc_searching_place");
+    ros::init(argc, argv, "detection_SLZ");
     
     PC_Search space;
     

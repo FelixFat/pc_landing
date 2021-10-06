@@ -9,22 +9,10 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
 
-// Структура кадра
-struct t_frame {
-    int width;
-    int height;
-};
+#include "pc_landing.h"
 
-// Структура посадочной окружности для метода расширения
-struct t_landing_circle {
-    float x;
-    float y;
-    float z;
-    float R;
-};
-
-bool landing_point(pc_landing::LandingPoint::Request  &req,
-                   pc_landing::LandingPoint::Response &res)
+bool search_point(pc_landing::LandingPoint::Request  &req,
+                  pc_landing::LandingPoint::Response &res)
 {    
     // Инициализация входного облака точек в формат PCL
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
@@ -153,10 +141,10 @@ bool landing_point(pc_landing::LandingPoint::Request  &req,
 
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "landing_point");
+    ros::init(argc, argv, "search_point");
     ros::NodeHandle n;
 
-    ros::ServiceServer service = n.advertiseService("/copter/landing_point", landing_point);
+    ros::ServiceServer service = n.advertiseService("/copter/landing_point", search_point);
     
     ros::spin();
 
