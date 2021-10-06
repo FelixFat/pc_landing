@@ -1,5 +1,8 @@
 <launch>
     <arg name="path"        default="/home/pi"/>
+    <arg name="width"       default="424"/>
+    <arg name="height"      default="420"/>
+    <arg name="fps"         default="6"/>
     
     <!-- Launch to mapping launch file video_map -->
     <include file="$(find pc_landing)/launch/video_map.launch">
@@ -8,4 +11,5 @@
     
     <!-- Start search -->
     <node pkg="pc_landing" type="pc_searching_place" name="pc_searching_place"/>
+    <node pkg="pc_landing" type="landing_point" name="landing_point"/>
 </launch>
