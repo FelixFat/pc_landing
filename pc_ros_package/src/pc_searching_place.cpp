@@ -53,125 +53,7 @@ public:
         sub_lp_     = n_.subscribe("/camera/depth_registered/points", 10, &PC_Search::callback_lp, this);
         client_     = n_.serviceClient<pc_landing::LandingPoint>("landing_point");
     }
-    
-    t_landing_circle landing_point(pcl::PointCloud<pcl::PointXYZ> cloud)
-    {
-        int gw, gh;
-        while (true)
-        {
-            gw = rand() % cloud.width;
-            gh = rand() % cloud.height;
-            
-            if (cloud.at(gw, gh).x == 0 and
-                cloud.at(gw, gh).y == 0 and
-                cloud.at(gw, gh).z == 0)
-            {
-                continue;
-            }
-            else
-            {
-                break;
-            }
-        }
-        
-        bool state = true;
-        bool flag = false;
-        int R = 1;
-        
-        std::vector<t_frame> po;
-        
-        float x, y, z;
-        
-        int goal_w, goal_h, goal_R = 0;
-        
-        while (true)
-        {        
-            for (int h = gh - R; h <= gh + R; h++)
-            {
-                for (int w = gw - R; w <= gw + R; w++)
-                {
-                    if (pow(w - gw, 2) + pow(h - gh, 2) > pow(R, 2))
-                    {
-                        continue;
-                    }
-                    
-                    if (w < 0 or w > cloud.width-1 or
-                        h < 0 or h > cloud.height-1)
-                    {
-                        po.push_back({ gw, gh });
-                        
-                        gw -= round((w - gw)/R);
-                        gh -= round((h - gh)/R);
-                        
-                        state = false;
-                        break;
-                    }
-                    
-                    x = cloud.at(w, h).x;
-                    y = cloud.at(w, h).y;
-                    z = cloud.at(w, h).z;
-                    if (x == 0 and y == 0 and z == 0)
-                    {
-                        po.push_back({ gw, gh });
-                        
-                        gw -= round((w - gw)/R);
-                        gh -= round((h - gh)/R);
-                        
-                        state = false;
-                        break;
-                    }
-                }
-                
-                if (!state)
-                {
-                    break;
-                }
-            }
-            
-            if (state)
-            {
-                goal_w = gw;
-                goal_h = gh;
-                goal_R = R;
-                
-                R++;
-            }
-            else
-            {
-                state = true;
-                for (auto p: po)
-                {
-                    if (gw == p.width and gh == p.height)
-                    {
-                        flag = true;
-                        break;
-                    }
-                }
-            }
-            
-            if (flag)
-            {
-                break;
-            }
-        }
-        
-        t_landing_circle circle = {0.0, 0.0, 0.0, 0.0};
-        
-        if (goal_R > 0.0)
-        {
-            float Radius = abs(cloud.at(goal_w, goal_h).x - cloud.at(goal_w - goal_R, goal_h).x);
-            circle = {
-                cloud.at(goal_w, goal_h).x,
-                cloud.at(goal_w, goal_h).y,
-                cloud.at(goal_w, goal_h).z,
-                Radius
-            };
-        }
-        
-        return(circle);
-    }
-    
-    
+
     // Функция приведения входящих в область облака точек
     pcl::PointCloud<pcl::PointXYZ> inliers_points(pcl::PointIndices::Ptr& inliers, pcl::PointCloud<pcl::PointXYZ>::Ptr& input, pcl::PointCloud<pcl::PointXYZ> cloud)
     {
@@ -267,6 +149,7 @@ public:
             
             if (inliers->indices.size() < pc_points_num_min)
             {
+                ROS_INFO("Could not estimate a PLANAR model for the given dataset!");
                 break;
             }
             
@@ -305,23 +188,23 @@ public:
                 cloud_cluster = inliers_points(ptr_new_i, ptr_input, cloud_cluster);
                 
                 // Поиск точки посадки
-                pc_landing_area = landing_point(cloud_cluster);
+                pcl::PointCloud<pcl::PointXYZ>::Ptr srv_cloud_cluster (new pcl::PointCloud<pcl::PointXYZ>(cloud_cluster));
+                sensor_msgs::PointCloud2Ptr cloud_msg (new sensor_msgs::PointCloud2);
+                pcl::toROSMsg(*srv_cloud_cluster, *cloud_msg);
                 
-//                 pc_landing::LandingPoint srv;
-//                 pcl::PointCloud<pcl::PointXYZ>::Ptr srv_cloud_cluster (new pcl::PointCloud<pcl::PointXYZ>(cloud_cluster));
-//                 sensor_msgs::PointCloud2Ptr cloud_msg (new sensor_msgs::PointCloud2);
-//                 
-//                 // Вызов сервиса для поиска точки посадки
-//                 pcl::toROSMsg(*srv_cloud_cluster, *cloud_msg);
-//                 
-//                 srv.request.input = *cloud_msg;
-//                 if (client_.call(srv))
-//                 {
-//                     pc_landing_area.x = srv.response.x;
-//                     pc_landing_area.y = srv.response.y;
-//                     pc_landing_area.z = srv.response.z;
-//                     pc_landing_area.R = srv.response.R;
-//                 }
+                pc_landing::LandingPoint srv;
+                srv.request.input = *cloud_msg;
+                if (client_.call(srv))
+                {
+                    pc_landing_area.x = srv.response.x;
+                    pc_landing_area.y = srv.response.y;
+                    pc_landing_area.z = srv.response.z;
+                    pc_landing_area.R = srv.response.R;
+                }
+                else
+                {
+                    ROS_ERROR("ServiceServer don't work!");
+                }
                 
                 // Проверка точки на соответствие требованию площади
                 pc_radius_m = pc_landing_area.R * pc_range;
