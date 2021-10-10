@@ -2,8 +2,8 @@
 #include <cmath>
 
 #include <ros/ros.h>
+#include <std_msgs/Float32.h>
 #include <sensor_msgs/PointCloud2.h>
-#include <sensor_msgs/Range.h>
 #include <pc_landing/LandingCoordinates.h>
 #include <pc_landing/LandingPoint.h>
 
@@ -49,7 +49,7 @@ public:
         pc_landing_area = { 0.0, 0.0, 0.0, 0.0 };
         
         pub_        = n_.advertise<pc_landing::LandingCoordinates>("/copter/slz_coordinates", 1);
-        sub_dist_   = n_.subscribe("/rangeginder/range", 10, &PC_Search::callback_dist, this);
+        sub_dist_   = n_.subscribe("/copter/dist_to_center", 1, &PC_Search::callback_dist, this);
         sub_lp_     = n_.subscribe("/camera/depth_registered/points", 10, &PC_Search::callback_lp, this);
         client_     = n_.serviceClient<pc_landing::LandingPoint>("/copter/landing_point");
     }
@@ -248,9 +248,9 @@ public:
         pub_.publish(fin_lp);
     }
     
-    void callback_dist(const sensor_msgs::RangeConstPtr& input)
+    void callback_dist(const std_msgs::Float32Ptr& input)
     {
-        pc_range_sensor = input->range + 0.025;
+        pc_range_sensor = input->data;
     }
 };
 
