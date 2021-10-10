@@ -1,11 +1,18 @@
 <launch>
-    <arg name="path"        default="/home/flex"/>
+    <arg name="path"        default="/home/pi"/>
+    <arg name="width"       default="424"/>
+    <arg name="height"      default="240"/>
+    <arg name="fps"         default="15"/>
     
     <!-- Launch to mapping launch file video_map -->
     <include file="$(find pc_landing)/launch/video_map.launch">
-        <arg name="path"    value="$(arg path)"/>
+        <arg name="path"        value="$(arg path)"/>
+        <arg name="width"       value="$(arg width)"/>
+        <arg name="height"      value="$(arg height)"/>
+        <arg name="fps"         value="$(arg fps)"/>
     </include>
     
     <!-- Start search -->
-    <node pkg="pc_landing" type="pc_searching_place" name="pc_searching_place"/>
+    <node pkg="pc_landing" type="pc_detection_slz" name="pc_detection_slz"/>
+    <node pkg="pc_landing" type="pc_search_point"  name="pc_search_point"/>
 </launch>

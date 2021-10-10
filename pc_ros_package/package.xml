@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>pc_landing</name>
-  <version>0.0.0</version>
+  <version>0.2.0</version>
   <description>The pc_landing package</description>
   
-  <maintainer email="flex@todo.todo">flex</maintainer>
+  <maintainer email="felixfat9@gmail.com">flex</maintainer>
   
   <license>TODO</license>
   
