@@ -12,10 +12,16 @@ public:
     PC_Distance()
     {        
         pub_ = n_.advertise<std_msgs::Float32>("/copter/dist_to_center", 1);
-        get_distance();
+        
+        std_msgs::Float32 msg;
+        msg.data = get_distance();
+        
+        ROS_INFO("Distance is %f meters away!", (float)msg.data);
+        
+        pub_.publish(msg);
     }
     
-    void get_distance()
+    float get_distance(void)
     {
         rs2::pipeline p;
         p.start();
@@ -27,11 +33,7 @@ public:
         int height = depth.get_height();
         float dist_to_center = depth.get_distance(width / 2, height / 2);
         
-        ROS_INFO("Distance is %f meters away!", dist_to_center);
-        
-        std_msgs::Float32 msg;
-        msg.data = dist_to_center;
-        pub_.publish(msg);
+        return dist_to_center;
     }
 };
 
