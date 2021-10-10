@@ -15,4 +15,5 @@
     <!-- Start search -->
     <node pkg="pc_landing" type="pc_detection_slz" name="pc_detection_slz"/>
     <node pkg="pc_landing" type="pc_search_point"  name="pc_search_point"/>
+    <node pkg="pc_landing" type="pc_distance"      name="pc_distance"/>
 </launch>

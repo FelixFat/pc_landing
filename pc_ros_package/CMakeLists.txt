@@ -11,6 +11,8 @@ find_package(catkin REQUIRED COMPONENTS
     message_generation
 )
 
+find_package(realsense2 REQUIRED)
+
 add_message_files(
     FILES
     LandingCoordinates.msg
@@ -29,7 +31,7 @@ generate_messages(
 
 catkin_package(
 #   INCLUDE_DIRS include
-    LIBRARIES pc_landing
+#   LIBRARIES pc_landing
     CATKIN_DEPENDS roscpp rospy pcl_ros pcl_conversions std_msgs sensor_msgs message_runtime
 #   DEPENDS system_lib
 )
@@ -46,6 +48,9 @@ include_directories(
 add_executable(pc_detection_slz src/pc_detection_slz.cpp)
 target_link_libraries(pc_detection_slz ${catkin_LIBRARIES})
 add_dependencies(pc_detection_slz pc_landing_gencpp)			#FOR MELODIC!!!
+
+add_executable(pc_distance src/pc_distance.cpp)
+target_link_libraries(pc_distance ${catkin_LIBRARIES} ${realsense2_LIBRARY})
 
 ##############
 #  Services  #
