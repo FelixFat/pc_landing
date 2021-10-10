@@ -13,21 +13,20 @@
 
 bool search_point(pc_landing::LandingPoint::Request  &req,
                   pc_landing::LandingPoint::Response &res)
-{    
+{
     // Инициализация входного облака точек в формат PCL
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
-    sensor_msgs::PointCloud2Ptr input_cloud (new sensor_msgs::PointCloud2(req.input));
-    pcl::fromROSMsg(*input_cloud, *cloud);
+    pcl::PointCloud<pcl::PointXYZ> cloud;
+    pcl::fromROSMsg(req.input, cloud);
     
     int gw, gh;
     while (true)
     {
-        gw = rand() % cloud->width;
-        gh = rand() % cloud->height;
+        gw = rand() % cloud.width;
+        gh = rand() % cloud.height;
         
-        if (cloud->at(gw, gh).x == 0 and
-            cloud->at(gw, gh).y == 0 and
-            cloud->at(gw, gh).z == 0)
+        if (cloud.at(gw, gh).x == 0 and
+            cloud.at(gw, gh).y == 0 and
+            cloud.at(gw, gh).z == 0)
         {
             continue;
         }
@@ -58,8 +57,8 @@ bool search_point(pc_landing::LandingPoint::Request  &req,
                     continue;
                 }
                 
-                if (w < 0 or w > cloud->width-1 or
-                    h < 0 or h > cloud->height-1)
+                if (w < 0 or w > cloud.width-1 or
+                    h < 0 or h > cloud.height-1)
                 {
                     po.push_back({ gw, gh });
                     
@@ -70,9 +69,9 @@ bool search_point(pc_landing::LandingPoint::Request  &req,
                     break;
                 }
                 
-                x = cloud->at(w, h).x;
-                y = cloud->at(w, h).y;
-                z = cloud->at(w, h).z;
+                x = cloud.at(w, h).x;
+                y = cloud.at(w, h).y;
+                z = cloud.at(w, h).z;
                 if (x == 0 and y == 0 and z == 0)
                 {
                     po.push_back({ gw, gh });
@@ -118,15 +117,15 @@ bool search_point(pc_landing::LandingPoint::Request  &req,
         }
     }
     
-    t_landing_circle circle = {1.0, 2.0, 3.0, 4.0};
+    t_landing_circle circle = {0.0, 0.0, 0.0, 0.0};
     
     if (goal_R > 0.0)
     {
-        float Radius = abs(cloud->at(goal_w, goal_h).x - cloud->at(goal_w - goal_R, goal_h).x);
+        float Radius = abs(cloud.at(goal_w, goal_h).x - cloud.at(goal_w - goal_R, goal_h).x);
         circle = {
-            cloud->at(goal_w, goal_h).x,
-            cloud->at(goal_w, goal_h).y,
-            cloud->at(goal_w, goal_h).z,
+            cloud.at(goal_w, goal_h).x,
+            cloud.at(goal_w, goal_h).y,
+            cloud.at(goal_w, goal_h).z,
             Radius
         };
     }
@@ -141,7 +140,7 @@ bool search_point(pc_landing::LandingPoint::Request  &req,
 
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "search_point");
+    ros::init(argc, argv, "pc_search_point");
     ros::NodeHandle n;
 
     ros::ServiceServer service = n.advertiseService("/copter/landing_point", search_point);

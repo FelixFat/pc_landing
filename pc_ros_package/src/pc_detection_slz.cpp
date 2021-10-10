@@ -51,7 +51,7 @@ public:
         pub_        = n_.advertise<pc_landing::LandingCoordinates>("/copter/slz_coordinates", 1);
         sub_dist_   = n_.subscribe("/rangeginder/range", 10, &PC_Search::callback_dist, this);
         sub_lp_     = n_.subscribe("/camera/depth_registered/points", 10, &PC_Search::callback_lp, this);
-        client_     = n_.serviceClient<pc_landing::LandingPoint>("search_point");
+        client_     = n_.serviceClient<pc_landing::LandingPoint>("/copter/landing_point");
     }
 
     // Функция приведения входящих в область облака точек
@@ -149,8 +149,12 @@ public:
             
             if (inliers->indices.size() < pc_points_num_min)
             {
-                ROS_INFO("Could not estimate a PLANAR model for the given dataset!");
+                ROS_INFO("Landing zone not detected!");
                 break;
+            }
+            else
+            {
+                ROS_INFO("Landing zone is detected!");
             }
             
             // Выделение детектированных областей в отдельное облако
@@ -188,14 +192,15 @@ public:
                 cloud_cluster = inliers_points(ptr_new_i, ptr_input, cloud_cluster);
                 
                 // Поиск точки посадки
-                pcl::PointCloud<pcl::PointXYZ>::Ptr srv_cloud_cluster (new pcl::PointCloud<pcl::PointXYZ>(cloud_cluster));
-                sensor_msgs::PointCloud2Ptr cloud_msg (new sensor_msgs::PointCloud2);
-                pcl::toROSMsg(*srv_cloud_cluster, *cloud_msg);
-                
                 pc_landing::LandingPoint srv;
-                srv.request.input = *cloud_msg;
+                
+                sensor_msgs::PointCloud2 cloud_msg;
+                pcl::toROSMsg(cloud_cluster, cloud_msg);
+                
+                srv.request.input = cloud_msg;
                 if (client_.call(srv))
                 {
+                    ROS_INFO("Searching landing point...");
                     pc_landing_area.x = srv.response.x;
                     pc_landing_area.y = srv.response.y;
                     pc_landing_area.z = srv.response.z;
@@ -203,7 +208,7 @@ public:
                 }
                 else
                 {
-                    ROS_ERROR("ServiceServer don't work!");
+                    ROS_ERROR("Service server don't work!");
                 }
                 
                 // Проверка точки на соответствие требованию площади
@@ -251,7 +256,7 @@ public:
 
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "detection_SLZ");
+    ros::init(argc, argv, "pc_detection_slz");
     
     PC_Search space;
     

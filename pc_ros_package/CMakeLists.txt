@@ -43,9 +43,9 @@ include_directories(
 #  Nodes  #
 ###########
 
-add_executable(pc_detection_SLZ src/pc_detection_SLZ.cpp)
-target_link_libraries(pc_detection_SLZ ${catkin_LIBRARIES})
-add_dependencies(pc_detection_SLZ pc_landing_gencpp)			#FOR MELODIC!!!
+add_executable(pc_detection_slz src/pc_detection_slz.cpp)
+target_link_libraries(pc_detection_slz ${catkin_LIBRARIES})
+add_dependencies(pc_detection_slz pc_landing_gencpp)			#FOR MELODIC!!!
 
 ##############
 #  Services  #
