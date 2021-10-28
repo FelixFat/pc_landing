@@ -1,7 +1,6 @@
 <launch>
-    <arg name="path"        default="/home/pi"/>
-    <arg name="width"       default="424"/>
-    <arg name="height"      default="240"/>
+    <arg name="width"       default="640"/>
+    <arg name="height"      default="480"/>
     <arg name="fps"         default="15"/>
     
     <!-- Start RealSense depth camera launch file -->
@@ -25,38 +24,4 @@
         <arg name="infra_height"        value="$(arg height)"/>
         <arg name="infra_fps"           value="$(arg fps)"/>
     </include>
-    
-    <!-- Start SLAM mapping -->
-    <include file="$(find rtabmap_ros)/launch/rtabmap.launch">
-        <arg name="rtabmapviz"              value="false"/>
-        <arg name="rviz"                    value="false"/>
-        <arg name="database_path"           value="$(arg path)/SLAM_map.db"/>
-        <arg name="rtabmap_args"            value="-delete_db_on_start"/>
-        
-        <arg name="stereo"                  value="true"/>
-        <arg name="approx_sync"             value="false"/>
-        
-        <arg name="left_image_topic"        value="/camera/infra1/image_rect_raw"/>
-        <arg name="right_image_topic"       value="/camera/infra2/image_rect_raw"/>
-        <arg name="left_camera_info_topic"  value="/camera/infra1/camera_info"/>
-        <arg name="right_camera_info_topic" value="/camera/infra2/camera_info"/>
-        
-        <arg name="depth_topic"             value="/camera/aligned_depth_to_color/image_raw"/>
-        <arg name="rgb_topic"               value="/camera/color/image_raw"/>
-        <arg name="camera_info_topic"       value="/camera/color/camera_info"/>
-    </include>
-    
-    <!-- Start color and depth video recording -->
-    <node pkg="image_view" type="video_recorder" name="video_recorder" args="image:=/camera/color/image_raw" ns="color">
-        <param name="filename"  type="str"  value="$(arg path)/color.avi"/>
-        <param name="fps"       type="int"  value="$(arg fps)"/>
-        <param name="codec"     type="str"  value="MJPG"/>
-        <param name="encoding"  type="str"  value="bgr8"/>         
-    </node>
-    <node pkg="image_view" type="video_recorder" name="video_recorder" args="image:=/camera/depth/image_rect_raw" ns="depth">
-        <param name="filename"  type="str"  value="$(arg path)/depth.avi"/>
-        <param name="fps"       type="int"  value="$(arg fps)"/>
-        <param name="codec"     type="str"  value="MJPG"/>
-        <param name="encoding"  type="str"  value="bgr8"/>         
-    </node>
 </launch>
