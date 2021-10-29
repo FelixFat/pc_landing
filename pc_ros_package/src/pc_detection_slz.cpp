@@ -147,7 +147,7 @@ public:
         ec.setMinClusterSize(pc_points_num_min);
         
         pcl::PointCloud<pcl::PointXYZ>::Ptr ptr_cloud (new pcl::PointCloud<pcl::PointXYZ>);
-        
+        pcl::PointCloud<pcl::PointXYZ>::Ptr f_cloud (new pcl::PointCloud<pcl::PointXYZ>);
         while (msg->size() > pc_points_num_min)
         {
             // Детектирование плоскости методом RANSAC
@@ -168,64 +168,70 @@ public:
             pcl::ExtractIndices<pcl::PointXYZ> extract;
             extract.setInputCloud(msg);
             extract.setIndices(inliers);
+            
+            extract.setNegative(false);
+            extract.filter(*f_cloud);
+            
             extract.setNegative(true);
             extract.filter(*ptr_cloud);
             *msg = *ptr_cloud;
         }
         
-            // Использование метода Kd-деревьев для сегментации областей
-            tree->setInputCloud(msg);
+        *msg = *f_cloud;
+        
+        // Использование метода Kd-деревьев для сегментации областей
+        tree->setInputCloud(msg);
+        
+        // Выделение пригодных областей
+        std::vector<pcl::PointIndices> cluster_indices;
+        ec.setSearchMethod(tree);
+        ec.setInputCloud(msg);
+        ec.extract(cluster_indices);
+        
+        // Кластеризация
+        float temp_radius = 0.0;
+        for (int i = 0; i < cluster_indices.size(); i++)
+        {
+            pcl::PointIndices::Ptr ptr_i (new pcl::PointIndices (cluster_indices.at(i)));
             
-            // Выделение пригодных областей
-            std::vector<pcl::PointIndices> cluster_indices;
-            ec.setSearchMethod(tree);
-            ec.setInputCloud(msg);
-            ec.extract(cluster_indices);
+            // Выделение кластеров в отдельные облака
+            pcl::PointIndices ind = indexes(ptr_i, ptr_input, msg);
+            pcl::PointIndices::Ptr ptr_ind (new pcl::PointIndices(ind));
             
-            // Кластеризация
-            float temp_radius = 0.0;
-            for (int i = 0; i < cluster_indices.size(); i++)
+            pcl::PointCloud<pcl::PointXYZ> cloud_cluster;
+            cloud_cluster = inliers_points(ptr_ind, ptr_input, cloud_cluster);
+            
+            // Поиск точки посадки
+            t_landing_circle temp_slz = { 0.0, 0.0, 0.0, 0.0 };
+            
+            pc_landing::LandingPoint srv;
+            
+            sensor_msgs::PointCloud2 cloud_msg;
+            pcl::toROSMsg(cloud_cluster, cloud_msg);
+            
+            srv.request.input = cloud_msg;
+            if (client_.call(srv))
             {
-                pcl::PointIndices::Ptr ptr_i (new pcl::PointIndices (cluster_indices.at(i)));
-                
-                // Выделение кластеров в отдельные облака
-                pcl::PointIndices ind = indexes(ptr_i, ptr_input, msg);
-                pcl::PointIndices::Ptr ptr_ind (new pcl::PointIndices(ind));
-                
-                pcl::PointCloud<pcl::PointXYZ> cloud_cluster;
-                cloud_cluster = inliers_points(ptr_ind, ptr_input, cloud_cluster);
-                
-                // Поиск точки посадки
-                t_landing_circle temp_slz = { 0.0, 0.0, 0.0, 0.0 };
-                
-                pc_landing::LandingPoint srv;
-                
-                sensor_msgs::PointCloud2 cloud_msg;
-                pcl::toROSMsg(cloud_cluster, cloud_msg);
-                
-                srv.request.input = cloud_msg;
-                if (client_.call(srv))
-                {
-                    ROS_INFO("Searching landing point...");
-                    temp_slz.x = srv.response.x;
-                    temp_slz.y = srv.response.y;
-                    temp_slz.z = srv.response.z;
-                    temp_slz.R = srv.response.R;
-                }
-                else
-                {
-                    ROS_ERROR("Service server don't work!");
-                }
-                
-                // Проверка точки на соответствие требованию площади
-                pc_radius_m = temp_slz.R * pc_range;
-                if (M_PI * pow(pc_radius_m, 2) >= pc_square_min and pc_radius_m > temp_radius)
-                {
-                    temp_radius = pc_radius_m;
-                    pc_landing_area = temp_slz;
-                    slz_place = cloud_cluster;
-                }
+                ROS_INFO("Searching landing point...");
+                temp_slz.x = srv.response.x;
+                temp_slz.y = srv.response.y;
+                temp_slz.z = srv.response.z;
+                temp_slz.R = srv.response.R;
             }
+            else
+            {
+                ROS_ERROR("Service server don't work!");
+            }
+            
+            // Проверка точки на соответствие требованию площади
+            pc_radius_m = temp_slz.R * pc_range;
+            if (M_PI * pow(pc_radius_m, 2) >= pc_square_min and pc_radius_m > temp_radius)
+            {
+                temp_radius = pc_radius_m;
+                pc_landing_area = temp_slz;
+                slz_place = cloud_cluster;
+            }
+        }
         
         // Вывод
         pc_landing::LandingCoordinates slz_lp;
