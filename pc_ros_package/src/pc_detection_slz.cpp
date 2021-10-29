@@ -136,14 +136,14 @@ public:
         plane.setModelType(pcl::SACMODEL_PLANE);
         plane.setMethodType(pcl::SAC_PROSAC);
         plane.setEpsAngle(pc_model_angle);
-        plane.setDistanceThreshold(0.02);
+        plane.setDistanceThreshold(0.01);
         
         // Настройка модели сегментации
         pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
         
         // Настройка модели выделение пригодных областей
         pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
-        ec.setClusterTolerance(0.02);
+        ec.setClusterTolerance(0.01);
         ec.setMinClusterSize(pc_points_num_min);
         
         pcl::PointCloud<pcl::PointXYZ>::Ptr ptr_cloud (new pcl::PointCloud<pcl::PointXYZ>);
@@ -235,8 +235,12 @@ public:
         
         // Вывод
         pc_landing::LandingCoordinates slz_lp;
-        slz_lp.x = pc_landing_area.x * pc_range;
-        slz_lp.y = pc_landing_area.y * pc_range;
+        slz_lp.x = pc_landing_area.x;
+        slz_lp.y = pc_landing_area.y;
+        slz_lp.z = pc_landing_area.z;
+        slz_lp.R = pc_landing_area.R;
+        slz_lp.x_metres = pc_landing_area.x * pc_range;
+        slz_lp.y_metres = pc_landing_area.y * pc_range;
         pub_.publish(slz_lp);
         
         sensor_msgs::PointCloud2 filtered_msg;
