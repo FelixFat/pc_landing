@@ -106,10 +106,6 @@ public:
         pcl::PointCloud<pcl::PointXYZ>::Ptr ptr_input (new pcl::PointCloud<pcl::PointXYZ>);
         pcl::fromROSMsg(*input, *ptr_input);
         
-        // Формирование выходного облака
-        pcl::PointCloud<pcl::PointXYZ> f_cloud;
-        pcl::PointCloud<pcl::PointXYZ> slz_place;
-        
         // Расчет расстояния (приведение коэффициентов облака точек в метры)
         float pc_range = pc_range_sensor / ptr_input->at(ptr_input->height/2, ptr_input->width/2).z;
         
@@ -117,6 +113,7 @@ public:
         int pc_points_num_min = 0.3 * ptr_input->size();
         
         // Входное облако точек
+        pcl::PointCloud<pcl::PointXYZ> slz_place;
         pcl::PointCloud<pcl::PointXYZ>::Ptr msg (new pcl::PointCloud<pcl::PointXYZ>);
         for (auto p: ptr_input->points)
         {
@@ -139,24 +136,25 @@ public:
         plane.setModelType(pcl::SACMODEL_PLANE);
         plane.setMethodType(pcl::SAC_PROSAC);
         plane.setEpsAngle(pc_model_angle);
-        plane.setDistanceThreshold(0.004);
+        plane.setDistanceThreshold(0.02);
         
         // Настройка модели сегментации
         pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
         
         // Настройка модели выделение пригодных областей
         pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
-        ec.setClusterTolerance(0.003);
+        ec.setClusterTolerance(0.02);
         ec.setMinClusterSize(pc_points_num_min);
         
-        float temp_radius = 0.0;
-        while (true)
+        pcl::PointCloud<pcl::PointXYZ>::Ptr ptr_cloud (new pcl::PointCloud<pcl::PointXYZ>);
+        
+        while (msg->size() > pc_points_num_min)
         {
             // Детектирование плоскости методом RANSAC
             plane.setInputCloud(msg);
             plane.segment(*inliers, *coefficients);
             
-            if (inliers->indices.size() < pc_points_num_min)
+            if (inliers->indices.size() == 0)
             {
                 ROS_INFO("Landing zone not detected!");
                 break;
@@ -166,18 +164,15 @@ public:
                 ROS_INFO("Landing zone is detected!");
             }
             
-            // Выделение детектированных областей в отдельное облако
-            pcl::PointIndices ind = indexes(inliers, ptr_input, msg);
-            pcl::PointIndices::Ptr new_inliers (new pcl::PointIndices(ind));
-            
-            pcl::PointCloud<pcl::PointXYZ> cloud;
-            cloud = inliers_points(new_inliers, ptr_input, cloud);
-            
-            if (f_cloud.size() == 0)
-            {
-                f_cloud = cloud;
-            }
-            
+            // Извлечение ровных поверхностей
+            pcl::ExtractIndices<pcl::PointXYZ> extract;
+            extract.setInputCloud(msg);
+            extract.setIndices(inliers);
+            extract.setNegative(true);
+            extract.filter(*ptr_cloud);
+            *msg = *ptr_cloud;
+        }
+        
             // Использование метода Kd-деревьев для сегментации областей
             tree->setInputCloud(msg);
             
@@ -188,16 +183,17 @@ public:
             ec.extract(cluster_indices);
             
             // Кластеризация
+            float temp_radius = 0.0;
             for (int i = 0; i < cluster_indices.size(); i++)
             {
                 pcl::PointIndices::Ptr ptr_i (new pcl::PointIndices (cluster_indices.at(i)));
                 
                 // Выделение кластеров в отдельные облака
-                pcl::PointIndices new_i = indexes(ptr_i, ptr_input, msg);
-                pcl::PointIndices::Ptr ptr_new_i (new pcl::PointIndices(new_i));
+                pcl::PointIndices ind = indexes(ptr_i, ptr_input, msg);
+                pcl::PointIndices::Ptr ptr_ind (new pcl::PointIndices(ind));
                 
                 pcl::PointCloud<pcl::PointXYZ> cloud_cluster;
-                cloud_cluster = inliers_points(ptr_new_i, ptr_input, cloud_cluster);
+                cloud_cluster = inliers_points(ptr_ind, ptr_input, cloud_cluster);
                 
                 // Поиск точки посадки
                 t_landing_circle temp_slz = { 0.0, 0.0, 0.0, 0.0 };
@@ -225,29 +221,20 @@ public:
                 pc_radius_m = temp_slz.R * pc_range;
                 if (M_PI * pow(pc_radius_m, 2) >= pc_square_min and pc_radius_m > temp_radius)
                 {
-                    pc_landing_area = temp_slz;
                     temp_radius = pc_radius_m;
+                    pc_landing_area = temp_slz;
                     slz_place = cloud_cluster;
                 }
             }
-            
-            // Извлечение ровной поверхности
-            pcl::ExtractIndices<pcl::PointXYZ> extract;
-            extract.setInputCloud(msg);
-            extract.setIndices(inliers);
-            extract.setNegative(true);
-            extract.filter(*msg);
-        }
         
         // Вывод
-        sensor_msgs::PointCloud2 cloud_msg;
         pc_landing::LandingCoordinates slz_lp;
         slz_lp.x = pc_landing_area.x * pc_range;
         slz_lp.y = pc_landing_area.y * pc_range;
         pub_.publish(slz_lp);
         
         sensor_msgs::PointCloud2 filtered_msg;
-        pcl::toROSMsg(f_cloud, filtered_msg);
+        pcl::toROSMsg(*msg, filtered_msg);
         filtered_msg.header.frame_id = "camera_link";
         pub_pc_.publish(filtered_msg);
         
