@@ -22,7 +22,6 @@
 #include <pcl/segmentation/extract_clusters.h>
 
 #include <pcl/filters/extract_indices.h>
-
 #include <pcl/kdtree/kdtree.h>
 
 #include "pc_landing.h"
@@ -60,28 +59,28 @@ public:
     }
 
     // Функция приведения входящих в область облака точек
-    pcl::PointCloud<pcl::PointXYZ> inliers_points(pcl::PointIndices::Ptr& inliers, pcl::PointCloud<pcl::PointXYZ>::Ptr& input, pcl::PointCloud<pcl::PointXYZ> cloud)
+    pcl::PointCloud<pcl::PointXYZ> inliers_points(pcl::PointIndices inliers, pcl::PointCloud<pcl::PointXYZ>::Ptr& input, pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud)
     {
-        cloud.width = input->width;
-        cloud.height = input->height;
-        cloud.is_dense = false;
-        cloud.points.resize(cloud.width * cloud.height);
+        cloud->width = input->width;
+        cloud->height = input->height;
+        cloud->is_dense = false;
+        cloud->points.resize(cloud->width * cloud->height);
         
-        for (auto i: inliers->indices)
+        for (auto i: inliers.indices)
         {
-            cloud.points[i].x = input->points[i].x;
-            cloud.points[i].y = input->points[i].y;
-            cloud.points[i].z = input->points[i].z;
+            cloud->points[i].x = input->points[i].x;
+            cloud->points[i].y = input->points[i].y;
+            cloud->points[i].z = input->points[i].z;
         }
         
-        return(cloud);
+        return(*cloud);
     }
 
     // Функция приведения индексов облака точек
-    pcl::PointIndices indexes(pcl::PointIndices::Ptr& inliers, pcl::PointCloud<pcl::PointXYZ>::Ptr& input, pcl::PointCloud<pcl::PointXYZ>::Ptr& msg)
+    pcl::PointIndices indexes(pcl::PointIndices inliers, pcl::PointCloud<pcl::PointXYZ>::Ptr& input, pcl::PointCloud<pcl::PointXYZ>::Ptr& msg)
     {
         pcl::PointIndices indexes;
-        indexes.header = inliers->header;
+        indexes.header = inliers.header;
         
         int count = 0;
         for (int i = 0; i < input->size(); i++)
@@ -106,6 +105,10 @@ public:
         pcl::PointCloud<pcl::PointXYZ>::Ptr ptr_input (new pcl::PointCloud<pcl::PointXYZ>);
         pcl::fromROSMsg(*input, *ptr_input);
         
+        pcl::PointCloud<pcl::PointXYZ>::Ptr ptr_cloud (new pcl::PointCloud<pcl::PointXYZ>);
+        pcl::PointCloud<pcl::PointXYZ>::Ptr f_cloud (new pcl::PointCloud<pcl::PointXYZ>);
+        pcl::PointCloud<pcl::PointXYZ>::Ptr output (new pcl::PointCloud<pcl::PointXYZ>);
+        
         // Расчет расстояния (приведение коэффициентов облака точек в метры)
         float pc_range = pc_range_sensor / ptr_input->at(ptr_input->height/2, ptr_input->width/2).z;
         
@@ -113,7 +116,6 @@ public:
         int pc_points_num_min = 0.3 * ptr_input->size();
         
         // Входное облако точек
-        pcl::PointCloud<pcl::PointXYZ> slz_place;
         pcl::PointCloud<pcl::PointXYZ>::Ptr msg (new pcl::PointCloud<pcl::PointXYZ>);
         for (auto p: ptr_input->points)
         {
@@ -146,8 +148,7 @@ public:
         ec.setClusterTolerance(0.01);
         ec.setMinClusterSize(pc_points_num_min);
         
-        pcl::PointCloud<pcl::PointXYZ>::Ptr ptr_cloud (new pcl::PointCloud<pcl::PointXYZ>);
-        pcl::PointCloud<pcl::PointXYZ>::Ptr f_cloud (new pcl::PointCloud<pcl::PointXYZ>);
+        int size = 0;
         while (msg->size() > pc_points_num_min)
         {
             // Детектирование плоскости методом RANSAC
@@ -170,70 +171,68 @@ public:
             extract.setIndices(inliers);
             
             extract.setNegative(false);
-            extract.filter(*f_cloud);
+            extract.filter(*ptr_cloud);
+            
+            *output += *ptr_cloud;
+            
+            // Использование метода Kd-деревьев для сегментации областей
+            tree->setInputCloud(ptr_cloud);
+            
+            // Выделение пригодных областей
+            std::vector<pcl::PointIndices> cluster_indices;
+            ec.setSearchMethod(tree);
+            ec.setInputCloud(ptr_cloud);
+            ec.extract(cluster_indices);
+            
+            // Кластеризация
+            for(auto i: cluster_indices)
+            {
+                // Выделение кластеров в отдельные облака
+                pcl::PointIndices ind = indexes(i, ptr_input, ptr_cloud);
+                *ptr_cloud = inliers_points(ind, ptr_input, ptr_cloud);
+                
+                // Поиск точки посадки
+                if (ptr_cloud->size() > size)
+                {
+                    *f_cloud = *ptr_cloud;
+                    size = f_cloud->size();
+                    
+                    t_landing_circle temp_slz = { 0.0, 0.0, 0.0, 0.0 };
+                    
+                    pc_landing::LandingPoint srv;
+                    
+                    sensor_msgs::PointCloud2 cloud_msg;
+                    pcl::toROSMsg(*f_cloud, cloud_msg);
+                    
+                    srv.request.input = cloud_msg;
+                    if (client_.call(srv))
+                    {
+                        ROS_INFO("Searching landing point...");
+                        temp_slz.x = srv.response.x;
+                        temp_slz.y = srv.response.y;
+                        temp_slz.z = srv.response.z;
+                        temp_slz.R = srv.response.R;
+                    }
+                    else
+                    {
+                        ROS_ERROR("Service server don't work!");
+                    }
+                    
+                    // Проверка точки на соответствие требованию площади
+                    pc_radius_m = temp_slz.R * pc_range;
+                    if (M_PI * pow(pc_radius_m, 2) >= pc_square_min)
+                    {
+                        pc_landing_area = temp_slz;
+                    }
+                }
+            }
             
             extract.setNegative(true);
             extract.filter(*ptr_cloud);
             *msg = *ptr_cloud;
         }
         
-        *msg = *f_cloud;
-        
-        // Использование метода Kd-деревьев для сегментации областей
-        tree->setInputCloud(msg);
-        
-        // Выделение пригодных областей
-        std::vector<pcl::PointIndices> cluster_indices;
-        ec.setSearchMethod(tree);
-        ec.setInputCloud(msg);
-        ec.extract(cluster_indices);
-        
-        // Кластеризация
-        float temp_radius = 0.0;
-        for (int i = 0; i < cluster_indices.size(); i++)
-        {
-            pcl::PointIndices::Ptr ptr_i (new pcl::PointIndices (cluster_indices.at(i)));
-            
-            // Выделение кластеров в отдельные облака
-            pcl::PointIndices ind = indexes(ptr_i, ptr_input, msg);
-            pcl::PointIndices::Ptr ptr_ind (new pcl::PointIndices(ind));
-            
-            pcl::PointCloud<pcl::PointXYZ> cloud_cluster;
-            cloud_cluster = inliers_points(ptr_ind, ptr_input, cloud_cluster);
-            
-            // Поиск точки посадки
-            t_landing_circle temp_slz = { 0.0, 0.0, 0.0, 0.0 };
-            
-            pc_landing::LandingPoint srv;
-            
-            sensor_msgs::PointCloud2 cloud_msg;
-            pcl::toROSMsg(cloud_cluster, cloud_msg);
-            
-            srv.request.input = cloud_msg;
-            if (client_.call(srv))
-            {
-                ROS_INFO("Searching landing point...");
-                temp_slz.x = srv.response.x;
-                temp_slz.y = srv.response.y;
-                temp_slz.z = srv.response.z;
-                temp_slz.R = srv.response.R;
-            }
-            else
-            {
-                ROS_ERROR("Service server don't work!");
-            }
-            
-            // Проверка точки на соответствие требованию площади
-            pc_radius_m = temp_slz.R * pc_range;
-            if (M_PI * pow(pc_radius_m, 2) >= pc_square_min and pc_radius_m > temp_radius)
-            {
-                temp_radius = pc_radius_m;
-                pc_landing_area = temp_slz;
-                slz_place = cloud_cluster;
-            }
-        }
-        
-        // Вывод
+        // Вывод координат точки посадки
         pc_landing::LandingCoordinates slz_lp;
         slz_lp.x = pc_landing_area.x;
         slz_lp.y = pc_landing_area.y;
@@ -243,15 +242,16 @@ public:
         slz_lp.y_metres = pc_landing_area.y * pc_range;
         pub_.publish(slz_lp);
         
-        sensor_msgs::PointCloud2 filtered_msg;
-        pcl::toROSMsg(*msg, filtered_msg);
-        filtered_msg.header.frame_id = "camera_link";
-        pub_pc_.publish(filtered_msg);
+        //Вывод найденных облаков точек
+        sensor_msgs::PointCloud2 output_msg;
         
-        sensor_msgs::PointCloud2 slz_msg;
-        pcl::toROSMsg(slz_place, slz_msg);
-        slz_msg.header.frame_id = "camera_link";
-        pub_place_.publish(slz_msg);
+        pcl::toROSMsg(*output, output_msg);
+        output_msg.header.frame_id = "camera_link";
+        pub_pc_.publish(output_msg);
+        
+        pcl::toROSMsg(*f_cloud, output_msg);
+        output_msg.header.frame_id = "camera_link";
+        pub_place_.publish(output_msg);
     }
     
     void callback_dist(const sensor_msgs::RangeConstPtr& input)
